@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "@/App.css";
+import { HelmetProvider } from "react-helmet-async";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { ThemeProvider } from "./contexts/ThemeContext";
@@ -110,15 +111,17 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <BrowserRouter>
-          <WebSocketProvider>
-            <AppRoutes />
-            <Toaster position="top-right" richColors />
-          </WebSocketProvider>
-        </BrowserRouter>
-      </AuthProvider>
-    </ThemeProvider>
+    <HelmetProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <BrowserRouter>
+            <WebSocketProvider>
+              <AppRoutes />
+              <Toaster position="top-right" richColors />
+            </WebSocketProvider>
+          </BrowserRouter>
+        </AuthProvider>
+      </ThemeProvider>
+    </HelmetProvider>
   );
 }

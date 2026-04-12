@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { useAuth } from "../contexts/AuthContext";
 import Navbar from "../components/Navbar";
 import axios from "axios";
@@ -90,8 +91,23 @@ export default function SharedJobPage() {
   const isAcceptable = job.status === "open" && !job.is_full;
   const crewPct = Math.min((job.crew_accepted_count / job.crew_needed) * 100, 100);
 
+  const ogTitle = `${job.title} — $${job.pay_rate}/hr in ${[job.city, job.state].filter(Boolean).join(", ") || "your area"}`;
+  const ogDesc  = `${job.description ? job.description.slice(0, 120) + " | " : ""}${job.trade ? job.trade + " | " : ""}${job.crew_accepted_count}/${job.crew_needed} slots filled`;
+  const ogUrl   = `${window.location.origin}/j/${jobId}`;
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#020617]">
+      <Helmet>
+        <title>{ogTitle} | PunchListJobs</title>
+        <meta property="og:type"        content="website" />
+        <meta property="og:site_name"   content="PunchListJobs" />
+        <meta property="og:url"         content={ogUrl} />
+        <meta property="og:title"       content={ogTitle} />
+        <meta property="og:description" content={ogDesc} />
+        <meta name="twitter:card"        content="summary" />
+        <meta name="twitter:title"       content={ogTitle} />
+        <meta name="twitter:description" content={ogDesc} />
+      </Helmet>
       {user ? (
         <Navbar />
       ) : (

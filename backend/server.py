@@ -1,6 +1,7 @@
 from fastapi import FastAPI, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import HTMLResponse
 from dotenv import load_dotenv
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
@@ -73,6 +74,64 @@ async def public_settings():
     )
     result = {k: v for k, v in settings.items() if k.startswith("social_") or k in public_keys}
     return {**defaults, **result}
+
+
+import html as _html
+
+
+@_pub.get("/j/{job_id}", response_class=HTMLResponse)
+async def og_share_page(job_id: str):
+    """Backend OG-tag page for social crawlers (Slack, Twitter, iMessage).
+    Real browsers are redirected immediately to the React SPA at /j/{job_id}.
+    """
+    job = await _db.jobs.find_one({"id": job_id}, {"_id": 0})
+    if not job or job.get("is_archived") or job.get("is_hidden"):
+        return HTMLResponse("<html><body><p>Job not found.</p></body></html>", status_code=404)
+
+    loc = job.get("location") or {}
+    city  = loc.get("city", "")
+    state = loc.get("state", "")
+    location_str = ", ".join(filter(None, [city, state])) or "Location TBD"
+
+    crew_accepted = len(job.get("crew_accepted", []))
+    crew_needed   = job.get("crew_needed", 1)
+    pay_rate      = job.get("pay_rate", 0)
+    trade         = job.get("trade", "")
+
+    og_title = _html.escape(f"{job['title']} — ${pay_rate}/hr in {location_str}")
+    raw_desc  = (job.get("description") or "").strip()
+    slot_info = f"{crew_accepted}/{crew_needed} slots filled"
+    og_desc   = _html.escape(f"{raw_desc[:120] + ' | ' if raw_desc else ''}{trade + ' | ' if trade else ''}{slot_info}")
+    spa_url   = f"/j/{job_id}"
+
+    html_body = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{og_title}</title>
+
+  <!-- Open Graph -->
+  <meta property="og:type"        content="website">
+  <meta property="og:site_name"   content="PunchListJobs">
+  <meta property="og:url"         content="{spa_url}">
+  <meta property="og:title"       content="{og_title}">
+  <meta property="og:description" content="{og_desc}">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card"        content="summary">
+  <meta name="twitter:site"        content="@PunchListJobs">
+  <meta name="twitter:title"       content="{og_title}">
+  <meta name="twitter:description" content="{og_desc}">
+
+  <!-- Instant redirect for real browsers -->
+  <meta http-equiv="refresh" content="0; url={spa_url}">
+  <script>window.location.replace("{spa_url}")</script>
+</head>
+<body>
+  <p>Redirecting to <a href="{spa_url}">{og_title}</a>…</p>
+</body>
+</html>"""
+    return HTMLResponse(html_body)
 
 api_router.include_router(_pub)
 

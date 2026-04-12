@@ -308,7 +308,9 @@ export default function CrewDashboard() {
   };
 
   const shareJob = async (job) => {
-    const shareUrl = `${window.location.origin}/j/${job.id}`;
+    // /api/j/{id} is served by the backend with OG meta tags; real browsers
+    // are immediately redirected to /j/{id} (the React SPA page).
+    const shareUrl = `${window.location.origin}/api/j/${job.id}`;
     const shareText = `${job.title} — $${job.pay_rate}/hr in ${job.location?.city || "your area"}`;
     if (navigator.share) {
       try { await navigator.share({ title: job.title, text: shareText, url: shareUrl }); }

@@ -43,6 +43,7 @@ Imported from: https://github.com/acestakane/PunchListJobsRemixV20.git
 - Contractor contact info hidden when crew application is PENDING (2026-04-12)
 - Paid Reveal: crew can unlock contractor contact for $2.99 (demo) while pending+job not full; persists after purchase (2026-04-12)
 - Share Approved Jobs: crew can share job link (/j/:jobId) only when accepted; public page shows sanitized data (city/state only, no address/coords) with sign-in CTA for guests (2026-04-12)
+- Open Graph meta tags: /api/j/{id} serves OG+Twitter Card HTML for crawlers (Slack, Twitter, iMessage) + react-helmet-async for Discord/WhatsApp; real browsers redirect to /j/:jobId SPA (2026-04-12)
 
 ## Mocked APIs (Demo Mode)
 - Square payment (no real token - auto-succeeds in demo)
