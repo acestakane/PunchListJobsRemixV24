@@ -11,7 +11,7 @@ import axios from "axios";
 import {
   MapPin, List, Filter, Zap, Clock, Star, RefreshCw, AlertCircle, X,
   CheckCircle, Camera, Phone, Navigation, ClipboardList, FileText, ToggleLeft, ToggleRight, AlertTriangle,
-  UserCheck, UserX, MessageCircle, Eye, Mail, LogOut
+  UserCheck, UserX, MessageCircle, Eye, Mail, LogOut, Share2
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -296,7 +296,6 @@ export default function CrewDashboard() {
   }, [selectedJob]);
 
   const revealContactInfo = async () => {
-    if (!selectedJob) return;
     setRevealLoading(true);
     try {
       const res = await axios.post(`${API}/jobs/${selectedJob.id}/reveal-contact`);
@@ -307,6 +306,20 @@ export default function CrewDashboard() {
     } catch (e) { toast.error(e?.response?.data?.detail || "Failed to unlock contact info"); }
     finally { setRevealLoading(false); }
   };
+
+  const shareJob = async (job) => {
+    const shareUrl = `${window.location.origin}/j/${job.id}`;
+    const shareText = `${job.title} — $${job.pay_rate}/hr in ${job.location?.city || "your area"}`;
+    if (navigator.share) {
+      try { await navigator.share({ title: job.title, text: shareText, url: shareUrl }); }
+      catch { /* cancelled */ }
+    } else {
+      await navigator.clipboard.writeText(shareUrl);
+      toast.success("Job link copied to clipboard!");
+    }
+  };
+
+
 
   const acceptCrewRequest = async (requestId) => {
     try {
@@ -497,6 +510,7 @@ export default function CrewDashboard() {
                       </div>
                     )}
                     <JobCard job={job} onAccept={acceptJob} onComplete={completeJob} onPreview={setSelectedJob}
+                      onShare={acceptedIds.includes(job.id) && !pendingIds.includes(job.id) ? shareJob : undefined}
                       currentUser={user} isAccepted={acceptedIds.includes(job.id) || pendingIds.includes(job.id)}
                       isPending={pendingIds.includes(job.id)} isExpired={isExpired} />
                   </div>
@@ -820,12 +834,20 @@ export default function CrewDashboard() {
                 </div>
               )}
               {acceptedIds.includes(selectedJob.id) && (
-                <button
-                  onClick={() => { messageContractor(selectedJob.id); setSelectedJob(null); }}
-                  className="w-full py-2.5 rounded-xl font-semibold bg-emerald-600 text-white hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2 text-sm mt-2"
-                  data-testid="modal-message-contractor">
-                  <Mail className="w-4 h-4" /> Message Contractor
-                </button>
+                <div className="flex gap-2 mt-2">
+                  <button
+                    onClick={() => { messageContractor(selectedJob.id); setSelectedJob(null); }}
+                    className="flex-1 py-2.5 rounded-xl font-semibold bg-emerald-600 text-white hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2 text-sm"
+                    data-testid="modal-message-contractor">
+                    <Mail className="w-4 h-4" /> Message Contractor
+                  </button>
+                  <button
+                    onClick={() => shareJob(selectedJob)}
+                    className="px-4 py-2.5 rounded-xl font-semibold bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors flex items-center gap-1.5 text-sm"
+                    data-testid="modal-share-job">
+                    <Share2 className="w-4 h-4" /> Share
+                  </button>
+                </div>
               )}
             </div>
           </div>

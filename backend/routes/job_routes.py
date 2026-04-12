@@ -278,6 +278,34 @@ async def request_suspend(job_id: str, current_user: dict = Depends(get_current_
     return {"message": "Suspension request sent to contractor"}
 
 
+@router.get("/{job_id}/share")
+async def share_job_public(job_id: str):
+    """Publicly accessible endpoint — returns sanitized job data for sharing.
+    No auth required. Never returns exact address, contact info, or coordinates.
+    """
+    job = await db.jobs.find_one({"id": job_id}, {"_id": 0})
+    if not job or job.get("is_archived") or job.get("is_hidden"):
+        raise HTTPException(status_code=404, detail="Job not found or unavailable")
+    loc = job.get("location") or {}
+    crew_accepted_count = len(job.get("crew_accepted", []))
+    return {
+        "id": job["id"],
+        "title": job["title"],
+        "description": job.get("description", ""),
+        "trade": job.get("trade", ""),
+        "pay_rate": job.get("pay_rate", 0),
+        "crew_needed": job.get("crew_needed", 1),
+        "crew_accepted_count": crew_accepted_count,
+        "is_full": crew_accepted_count >= job.get("crew_needed", 1),
+        "status": job.get("status", "open"),
+        "is_emergency": job.get("is_emergency", False),
+        "start_time": job.get("start_time"),
+        "city": loc.get("city", ""),
+        "state": loc.get("state", ""),
+        "created_at": job.get("created_at", ""),
+    }
+
+
 @router.get("/{job_id}")
 async def get_job(job_id: str, current_user: dict = Depends(get_current_user)):
     job = await db.jobs.find_one({"id": job_id}, {"_id": 0})

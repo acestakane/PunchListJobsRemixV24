@@ -21,6 +21,7 @@ import JobsItinerary from "./pages/JobsItinerary";
 import Help from "./pages/Help";
 import ReportConcern from "./pages/ReportConcern";
 import ResolveIssue from "./pages/ResolveIssue";
+import SharedJobPage from "./pages/SharedJobPage";
 import OnboardingModal from "./components/OnboardingModal";
 
 const ONBOARDING_KEY = "punchlistjobs_onboarding_done";
@@ -97,6 +98,7 @@ function AppRoutes() {
       <Route path="/archive" element={<ProtectedRoute roles={["contractor","admin","superadmin"]}><ArchivePage /></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><AppSettingsPage /></ProtectedRoute>} />
       <Route path="/pages/:slug" element={<CmsPage />} />
+      <Route path="/j/:jobId" element={<SharedJobPage />} />
       <Route path="/help" element={<Help />} />
       <Route path="/help/report-a-concern" element={<ProtectedRoute><ReportConcern /></ProtectedRoute>} />
       <Route path="/report-concern" element={<Navigate to="/help/report-a-concern" replace />} />

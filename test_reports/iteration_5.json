@@ -1,0 +1,51 @@
+{
+  "summary": "Tested Share Approved Jobs feature end-to-end. Backend: 7/7 tests passed. Frontend: all 11 scenarios verified via Playwright.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_share_job.py",
+    "/app/test_reports/pytest/share_job_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_share_job.py"
+  ],
+  "success_rate": {
+    "backend": "100% (7/7)",
+    "frontend": "100% (11/11 scenarios)"
+  },
+  "seed_data_creation": "",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Share Approved Jobs feature fully working. Public endpoint GET /api/jobs/{id}/share returns sanitized fields (no address/email/phone/lat/lng). Route /j/:jobId is public (not behind ProtectedRoute). crew1 has 2 accepted jobs with Share buttons visible. crew5 is pending — no share button. contractor1 has no share buttons. Modal share button (data-testid=modal-share-job) works for accepted crew. Apply button visible for logged-in crew on open jobs, CTA shown for anonymous users.",
+  "passed_tests": [
+    "Backend: GET /api/jobs/{id}/share returns 200 without auth",
+    "Backend: Share response includes id, title, description, pay_rate, crew_needed, crew_accepted_count, is_full, status, city, state",
+    "Backend: Share response does NOT contain address, email, phone, lat, lng, location, contractor_id",
+    "Backend: Share works for crew1 accepted job (e07dc228)",
+    "Backend: Share returns 404 for non-existent job",
+    "Backend: city/state are strings",
+    "Backend: is_full matches crew_accepted_count >= crew_needed",
+    "Frontend: /j/:jobId loads without auth (public page)",
+    "Frontend: Sign In button (data-testid=shared-page-login-btn) visible when not logged in",
+    "Frontend: Sign in to Apply CTA (data-testid=shared-page-signup-cta) visible when not logged in",
+    "Frontend: Job title, pay rate, city/state, description all shown on public page",
+    "Frontend: Apply button NOT shown for unauthenticated user",
+    "Frontend: Navbar shown (not Sign In header) when logged in as crew1",
+    "Frontend: Apply for This Job button (data-testid=shared-page-apply-btn) visible for logged-in crew on open job",
+    "Frontend: Fully staffed message shown when job slots are filled",
+    "Frontend: Share buttons (data-testid=share-job-{id}) visible on 2 accepted jobs for crew1 in list view",
+    "Frontend: No Share buttons for crew5 (pending only)",
+    "Frontend: modal-share-job button visible in job detail modal for accepted crew1",
+    "Frontend: No share-job-{id} buttons on contractor dashboard"
+  ],
+  "failed_tests": []
+}

@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { MapPin, Clock, DollarSign, Users, AlertTriangle, Bookmark, CheckCircle, Eye, MessageCircle } from "lucide-react";
+import { MapPin, Clock, DollarSign, Users, AlertTriangle, Bookmark, CheckCircle, Eye, MessageCircle, Share2 } from "lucide-react";
 
 const STATUS_COLORS = {
   open: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300",
@@ -48,7 +48,7 @@ function formatTime(timeStr) {
   } catch { return timeStr; }
 }
 
-export default function JobCard({ job, onAccept, onStart, onComplete, onVerify, onRate, onPreview, currentUser, isAccepted, onRemoveRating, isPending }) {
+export default function JobCard({ job, onAccept, onStart, onComplete, onVerify, onRate, onPreview, onShare, currentUser, isAccepted, onRemoveRating, isPending }) {
   const navigate = useNavigate();
   const isCrew = currentUser?.role === "crew";
   const isContractor = currentUser?.role === "contractor";
@@ -125,6 +125,16 @@ export default function JobCard({ job, onAccept, onStart, onComplete, onVerify, 
 
       {/* Actions */}
       <div className="flex gap-2 flex-wrap">
+        {/* Crew: share approved job */}
+        {isCrew && isAccepted && !isPending && onShare && (
+          <button
+            onClick={() => onShare(job)}
+            className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 transition-colors flex items-center gap-1"
+            data-testid={`share-job-${job.id}`}
+          >
+            <Share2 className="w-3 h-3" /> Share
+          </button>
+        )}
         {/* Message link — always visible for accepted crew and contractor */}
         {(isCrew && isAccepted) || isContractor ? (
           <button
