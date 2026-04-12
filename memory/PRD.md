@@ -21,7 +21,7 @@ Imported from: https://github.com/acestakane/PunchListJobsRemixV20.git
 - Job posting, application, approval/decline workflow
 - Job lifecycle: open → fulfilled → in_progress → completed → verified
 - Emergency jobs (atomic race-claim)
-- Real-time WebSocket notifications
+- Real-time WebSocket notifications (alerts in Navbar bell dropdown)
 - Crew search with geo-filtering and smart match scoring
 - Profile completion tracking + bonus points
 - Subscription system (daily/weekly/monthly/annual)
@@ -35,6 +35,10 @@ Imported from: https://github.com/acestakane/PunchListJobsRemixV20.git
 - Direct messaging (threads/channels)
 - Concerns/support ticket system
 - Job archive, boost, emergency flag
+- Alert Card moved to Navbar bell dropdown notification (2026-04-12)
+- Crew Dashboard pending/approval state + duplicate application blocking (2026-04-12)
+- /pay-history shows Expenses for Crew/Contractor roles (2026-04-12)
+- Crew Transportation Type feature-flag: Admin toggle + Crew Profile field + Contractor card badge (2026-04-12)
 
 ## Mocked APIs (Demo Mode)
 - Square payment (no real token - auto-succeeds in demo)
