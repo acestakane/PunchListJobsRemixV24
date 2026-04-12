@@ -13,7 +13,7 @@ import axios from "axios";
 import {
   Search, Plus, Zap, Users, ClipboardList, Star, MapPin, X, AlertTriangle,
   AlertCircle, Copy, ExternalLink, Share2, UserCheck, Clock,
-  PauseCircle, PlayCircle, Ban, Trash2, Eye, Archive, MessageCircle, Bell
+  PauseCircle, PlayCircle, Ban, Trash2, Eye, Archive, MessageCircle
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -231,7 +231,7 @@ function CrewCard({ member, onRequest, onViewProfile, isViewerFree }) {
 export default function ContractorDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { addListener, connected } = useWebSocket();
+  const { addListener, connected, pushAlert } = useWebSocket();
   const [jobs, setJobs] = useState([]);
   const [crew, setCrew] = useState([]);
   const [crewSearch, setCrewSearch] = useState({ name: "", trade: "", address: "" });
@@ -262,7 +262,6 @@ export default function ContractorDashboard() {
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [copyEditMode, setCopyEditMode] = useState(false);
   const [jobSort, setJobSort] = useState("date");
-  const [alerts, setAlerts] = useState([]);
   const [applicantsJob, setApplicantsJob] = useState(null); // job_id whose applicant panel is open
   const [applicantDetails, setApplicantDetails] = useState({}); // { [job_id]: [...crew] }
   const [cancelReqJob, setCancelReqJob] = useState(null); // job_id whose cancel-req panel is open
@@ -326,8 +325,6 @@ export default function ContractorDashboard() {
 
   useEffect(() => {
     const remove = addListener(msg => {
-      const pushAlert = (text, type = "info") =>
-        setAlerts(prev => [{ id: Date.now(), text, type, ts: new Date() }, ...prev].slice(0, 8));
       if (msg.type === "crew_cancel_request") {
         toast.warning(`${msg.crew_name} wants to cancel from "${msg.job_title}"`);
         pushAlert(`${msg.crew_name} requested to cancel from "${msg.job_title}"`, "warning");
@@ -361,7 +358,7 @@ export default function ContractorDashboard() {
       }
     });
     return remove;
-  }, [addListener, fetchJobs, fetchCrewRequests]);
+  }, [addListener, fetchJobs, fetchCrewRequests, pushAlert]);
 
   const createJob = async (e) => {
     e.preventDefault();
@@ -655,40 +652,6 @@ export default function ContractorDashboard() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-          {/* ALERTS PANEL */}
-          <div className="lg:col-span-2 space-y-2" data-testid="alerts-panel">
-            <div className="card p-3">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="font-bold text-[#050A30] dark:text-white text-sm" style={{ fontFamily: "Manrope, sans-serif" }}>Alerts</h3>
-                {alerts.length > 0 && (
-                  <button onClick={() => setAlerts([])} className="text-[10px] text-slate-400 hover:text-red-400 transition-colors" data-testid="clear-alerts-btn">Clear</button>
-                )}
-              </div>
-              {alerts.length === 0 ? (
-                <div className="text-center py-5">
-                  <Bell className="w-6 h-6 text-slate-300 mx-auto mb-1" />
-                  <p className="text-xs text-slate-400">No alerts yet</p>
-                </div>
-              ) : (
-                <div className="space-y-2 max-h-[420px] overflow-y-auto">
-                  {alerts.map(a => (
-                    <div key={a.id}
-                      className={`p-2 rounded-lg text-xs ${
-                        a.type === "success" ? "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400" :
-                        a.type === "warning" ? "bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400" :
-                        "bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400"
-                      }`}
-                      data-testid={`alert-item-${a.id}`}
-                    >
-                      <p className="font-semibold leading-tight">{a.text}</p>
-                      <p className="text-[10px] opacity-60 mt-0.5">{a.ts.toLocaleTimeString()}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
           {/* LEFT SIDEBAR - Crew Search */}
           <div className="lg:col-span-2 space-y-3">
             <div className="card p-4">

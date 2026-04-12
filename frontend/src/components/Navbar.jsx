@@ -1,19 +1,27 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
-import { Menu, X, ClipboardList, ChevronDown, User, Settings, LogOut, LayoutDashboard, Sliders, Archive, DollarSign, MessageCircle, CalendarRange, HelpCircle, Sun, Moon } from "lucide-react";
+import { Menu, X, ClipboardList, ChevronDown, User, Settings, LogOut, LayoutDashboard, Sliders, Archive, DollarSign, MessageCircle, CalendarRange, HelpCircle, Sun, Moon, Bell } from "lucide-react";
 import { useWebSocket } from "../contexts/WebSocketContext";
 
 export default function Navbar({ minimal = false }) {
   const { user, logout } = useAuth();
   const { colors, isDark, toggleTheme, siteName, tagline } = useTheme();
-  const { unreadMessages } = useWebSocket();
+  const { unreadMessages, alerts, clearAlerts } = useWebSocket();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [alertsOpen, setAlertsOpen] = useState(false);
+  const alertsRef = useRef(null);
   const navigate = useNavigate();
 
   const handleLogout = () => { logout(); navigate("/"); };
+
+  useEffect(() => {
+    const handler = (e) => { if (alertsRef.current && !alertsRef.current.contains(e.target)) setAlertsOpen(false); };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   const dashboardPath = user?.role === "crew" ? "/crew/dashboard"
     : user?.role === "contractor" ? "/contractor/dashboard"
@@ -39,6 +47,60 @@ export default function Navbar({ minimal = false }) {
 
           {/* Desktop Nav */}
           <div className="hidden md:flex items-center gap-3">
+
+            {/* Alert Notifications */}
+            {user && (
+              <div className="relative" ref={alertsRef}>
+                <button
+                  onClick={() => setAlertsOpen(o => !o)}
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-white/80 hover:text-white hover:bg-white/10 transition-colors relative"
+                  data-testid="alerts-bell-btn"
+                  title="Alerts"
+                >
+                  <Bell className="w-4 h-4" />
+                  {alerts.length > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center" data-testid="alerts-badge">
+                      {alerts.length > 9 ? "9+" : alerts.length}
+                    </span>
+                  )}
+                </button>
+
+                {alertsOpen && (
+                  <div className="absolute right-0 top-full mt-1 w-72 bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl z-50" data-testid="alerts-dropdown">
+                    <div className="flex items-center justify-between px-3 py-2 border-b border-slate-200 dark:border-slate-700">
+                      <span className="font-bold text-sm text-slate-800 dark:text-white">Alerts</span>
+                      {alerts.length > 0 && (
+                        <button onClick={clearAlerts} className="text-[10px] text-slate-400 hover:text-red-400 transition-colors" data-testid="clear-alerts-btn">Clear all</button>
+                      )}
+                    </div>
+                    <div className="p-2 max-h-80 overflow-y-auto">
+                      {alerts.length === 0 ? (
+                        <div className="text-center py-6">
+                          <Bell className="w-6 h-6 text-slate-300 mx-auto mb-1" />
+                          <p className="text-xs text-slate-400">No alerts yet</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-1.5">
+                          {alerts.map(a => (
+                            <div key={a.id}
+                              className={`p-2 rounded-lg text-xs ${
+                                a.type === "success" ? "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400" :
+                                a.type === "warning" ? "bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400" :
+                                "bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400"
+                              }`}
+                              data-testid={`alert-item-${a.id}`}
+                            >
+                              <p className="font-semibold leading-tight">{a.text}</p>
+                              <p className="text-[10px] opacity-60 mt-0.5">{a.ts.toLocaleTimeString()}</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Theme Toggle */}
             <button
