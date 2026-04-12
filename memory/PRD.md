@@ -44,6 +44,11 @@ Imported from: https://github.com/acestakane/PunchListJobsRemixV20.git
 - Paid Reveal: crew can unlock contractor contact for $2.99 (demo) while pending+job not full; persists after purchase (2026-04-12)
 - Share Approved Jobs: crew can share job link (/j/:jobId) only when accepted; public page shows sanitized data (city/state only, no address/coords) with sign-in CTA for guests (2026-04-12)
 - Open Graph meta tags: /api/j/{id} serves OG+Twitter Card HTML for crawlers (Slack, Twitter, iMessage) + react-helmet-async for Discord/WhatsApp; real browsers redirect to /j/:jobId SPA (2026-04-12)
+- Job form enhancements: description required (server-side), PunchList tasks (dynamic list), image upload max 4 (2026-04-12)
+- Job itinerary: PunchList checklist with per-user task toggle, crew Submit Complete, contractor Set Complete (2026-04-12)
+- Ratings system: post-completion rating modal with 1-5 stars (crew rates contractor) (2026-04-12)
+- Dispute/support: flag button → dispute modal → stored in disputes collection for admin review (2026-04-12)
+- Time-based job automation: idle open jobs → suspended@24h → cancelled@48h → archived@72h (hourly cron) (2026-04-12)
 
 ## Mocked APIs (Demo Mode)
 - Square payment (no real token - auto-succeeds in demo)
