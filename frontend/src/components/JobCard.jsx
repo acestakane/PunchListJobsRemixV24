@@ -48,7 +48,7 @@ function formatTime(timeStr) {
   } catch { return timeStr; }
 }
 
-export default function JobCard({ job, onAccept, onStart, onComplete, onVerify, onRate, onPreview, currentUser, isAccepted, onRemoveRating }) {
+export default function JobCard({ job, onAccept, onStart, onComplete, onVerify, onRate, onPreview, currentUser, isAccepted, onRemoveRating, isPending }) {
   const navigate = useNavigate();
   const isCrew = currentUser?.role === "crew";
   const isContractor = currentUser?.role === "contractor";
@@ -162,9 +162,14 @@ export default function JobCard({ job, onAccept, onStart, onComplete, onVerify, 
             Mark Complete
           </button>
         )}
-        {isCrew && isAccepted && (
+        {isCrew && isAccepted && !isPending && (
           <span className="flex items-center gap-1 text-xs text-emerald-600 font-semibold px-2">
             <CheckCircle className="w-4 h-4" /> Accepted
+          </span>
+        )}
+        {isCrew && isPending && (
+          <span className="flex items-center gap-1 text-xs text-amber-600 font-semibold px-2" data-testid={`pending-status-${job.id}`}>
+            <Clock className="w-4 h-4" /> Pending Approval
           </span>
         )}
         {isContractor && ["open", "fulfilled"].includes(job.status) && crewCount >= 1 && (

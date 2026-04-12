@@ -29,6 +29,14 @@ const emergencyJobIcon = L.divIcon({
   popupAnchor: [0, -32],
 });
 
+const pendingJobIcon = L.divIcon({
+  html: `<div style="width:28px;height:28px;background:#F59E0B;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid white;box-shadow:0 2px 8px rgba(245,158,11,0.5)"></div>`,
+  className: "",
+  iconSize: [28, 28],
+  iconAnchor: [14, 28],
+  popupAnchor: [0, -28],
+});
+
 const crewIcon = L.divIcon({
   html: `<div style="width:24px;height:24px;background:#1E293B;border-radius:50%;border:3px solid #38BDF8;box-shadow:0 2px 8px rgba(0,0,0,0.3)"></div>`,
   className: "",
@@ -201,6 +209,7 @@ export default function JobMap({
   onCrewProfile,
   onRadiusChange,
   height = "500px",
+  pendingJobIds = [],
 }) {
   const [bearing, setBearing]             = useState(0);
   const [flyTarget, setFlyTarget]         = useState(null);
@@ -365,7 +374,7 @@ export default function JobMap({
               <Marker
                 key={job.id}
                 position={[job.location.lat, job.location.lng]}
-                icon={job.is_emergency ? emergencyJobIcon : jobIcon}
+                icon={job.is_emergency ? emergencyJobIcon : pendingJobIds.includes(job.id) ? pendingJobIcon : jobIcon}
                 eventHandlers={{ click: () => onJobClick?.(job) }}
               >
                 <Popup>
@@ -377,6 +386,11 @@ export default function JobMap({
                     <p style={{ color: "#666", fontSize: 12, margin: "4px 0" }}>{job.contractor_name}</p>
                     <p style={{ fontSize: 12 }}>Trade: {job.trade}</p>
                     <p style={{ fontSize: 12 }}>Crew: {job.crew_accepted?.length || 0}/{job.crew_needed}</p>
+                    {pendingJobIds.includes(job.id) && (
+                      <span style={{ background: "#FEF3C7", color: "#D97706", fontSize: 11, padding: "2px 6px", borderRadius: 4, fontWeight: "bold", display: "inline-block", marginTop: 4 }}>
+                        PENDING APPROVAL
+                      </span>
+                    )}
                     {job.is_emergency && (
                       <span style={{ background: "#FEE2E2", color: "#DC2626", fontSize: 11, padding: "2px 6px", borderRadius: 4, fontWeight: "bold" }}>
                         EMERGENCY

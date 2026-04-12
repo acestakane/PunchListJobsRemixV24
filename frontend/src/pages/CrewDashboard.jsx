@@ -302,6 +302,12 @@ export default function CrewDashboard() {
   const acceptedIds = myJobs.filter(j => j.my_status !== "pending").map(j => j.id);
   const pendingIds  = myJobs.filter(j => j.my_status === "pending").map(j => j.id);
   const isExpired = subStatus?.status === "expired";
+  const acceptedJobsCount = acceptedIds.length;
+  // Merge pending jobs into map feed so pending markers appear even if job is no longer "open"
+  const mapJobs = [
+    ...jobs,
+    ...myJobs.filter(j => j.my_status === "pending" && !jobs.some(jb => jb.id === j.id)),
+  ];
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#020617]" style={{ fontFamily: "Inter, sans-serif" }}>
@@ -436,7 +442,7 @@ export default function CrewDashboard() {
           {/* Map / Job List */}
           <div className="lg:col-span-2">
             {view === "map" ? (
-              <JobMap jobs={jobs} userLocation={locationEnabled ? userLocation : null} onLocate={v => setUserLocation(v)} profileAddress={user?.address} onJobClick={setSelectedJob} onRefresh={fetchJobs} onRadiusChange={setRadius} height="500px" />
+              <JobMap jobs={mapJobs} pendingJobIds={pendingIds} userLocation={locationEnabled ? userLocation : null} onLocate={v => setUserLocation(v)} profileAddress={user?.address} onJobClick={setSelectedJob} onRefresh={fetchJobs} onRadiusChange={setRadius} height="500px" />
             ) : (
               <div className="space-y-3 max-h-[600px] overflow-y-auto pr-1">
                 {loading ? (
@@ -466,7 +472,8 @@ export default function CrewDashboard() {
                       </div>
                     )}
                     <JobCard job={job} onAccept={acceptJob} onComplete={completeJob} onPreview={setSelectedJob}
-                      currentUser={user} isAccepted={acceptedIds.includes(job.id) || pendingIds.includes(job.id)} isExpired={isExpired} />
+                      currentUser={user} isAccepted={acceptedIds.includes(job.id) || pendingIds.includes(job.id)}
+                      isPending={pendingIds.includes(job.id)} isExpired={isExpired} />
                   </div>
                 ))}
               </div>
@@ -533,6 +540,10 @@ export default function CrewDashboard() {
                   <div className="text-2xl font-extrabold text-purple-500">{jobs.length}</div>
                   <div className="text-xs text-slate-500">Nearby</div>
                 </div>
+                <div className="col-span-2 bg-emerald-50 dark:bg-emerald-950 rounded-lg p-3 text-center" data-testid="accepted-jobs-count">
+                  <div className="text-2xl font-extrabold text-emerald-600">{acceptedJobsCount}</div>
+                  <div className="text-xs text-slate-500">Accepted Jobs</div>
+                </div>
               </div>
             </div>
 
@@ -579,12 +590,20 @@ export default function CrewDashboard() {
                         <p className="text-xs font-bold text-slate-800 dark:text-white truncate">{job.title}</p>
                         <p className="text-[10px] text-slate-500">${job.pay_rate}/hr · Awaiting approval</p>
                       </div>
-                      <button
-                        onClick={() => withdrawJob(job.id)}
-                        className="text-[10px] text-red-400 hover:text-red-600 ml-2 flex-shrink-0"
-                        data-testid={`withdraw-pending-${job.id}`}>
-                        Cancel
-                      </button>
+                      <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
+                        <button
+                          onClick={() => setSelectedJob(job)}
+                          className="text-[10px] text-blue-500 hover:text-blue-700 transition-colors"
+                          data-testid={`preview-pending-${job.id}`}>
+                          View
+                        </button>
+                        <button
+                          onClick={() => withdrawJob(job.id)}
+                          className="text-[10px] text-red-400 hover:text-red-600"
+                          data-testid={`withdraw-pending-${job.id}`}>
+                          Cancel
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -713,13 +732,20 @@ export default function CrewDashboard() {
                   )}
                 </div>
               )}
-              {selectedJob.status === "open" && !acceptedIds.includes(selectedJob.id) && (
+              {selectedJob.status === "open" && !acceptedIds.includes(selectedJob.id) && !pendingIds.includes(selectedJob.id) && (
                 <button onClick={() => { acceptJob(selectedJob.id); setSelectedJob(null); }}
                   disabled={isExpired}
                   className={`w-full py-3 rounded-xl font-bold transition-colors ${isExpired ? "bg-slate-300 text-slate-500 cursor-not-allowed" : selectedJob.is_emergency ? "bg-red-600 text-white hover:bg-red-700" : "bg-[#0000FF] text-white hover:bg-blue-700"}`}
                   data-testid="modal-accept-job">
                   {isExpired ? "Subscription Expired" : selectedJob.is_emergency ? "Accept Emergency Job" : "Accept This Job"}
                 </button>
+              )}
+              {pendingIds.includes(selectedJob.id) && (
+                <div
+                  className="w-full py-2.5 rounded-xl font-semibold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 flex items-center justify-center gap-2 text-sm mt-2"
+                  data-testid="modal-pending-status">
+                  <Clock className="w-4 h-4" /> Application Pending — Awaiting Contractor Approval
+                </div>
               )}
               {acceptedIds.includes(selectedJob.id) && (
                 <button
