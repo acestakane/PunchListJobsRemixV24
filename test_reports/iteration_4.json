@@ -1,0 +1,51 @@
+{
+  "summary": "Tested contractor contact reveal feature end-to-end. Backend: 10/10 tests passed. Frontend: all key UI states verified via Playwright — pending+hidden, reveal button, after-reveal with Paid Reveal badge, and success toast.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_reveal_contact.py",
+    "/app/test_reports/pytest/reveal_contact_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "The pending-masking logic at user_routes.py line 202 applies masking if `viewer_is_free OR mask_for_pending`. This means even FREE plan crew (not applied to job) get phone/email hidden when viewing any contractor. This is probably intentional (subscription gate) but worth confirming it's desired behavior.",
+    "Backend test crew2 (0a40a35e) now has paid_reveal persisted on job 6b115c8d after test_reveal_new_crew_flow ran. Test cleanup not implemented. Not a code issue, but test data is now modified."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_reveal_contact.py"
+  ],
+  "success_rate": {
+    "backend": "100% (10/10)",
+    "frontend": "100% (all key states verified)"
+  },
+  "seed_data_creation": "Applied crew4 (596d028e) and crew5 (46ff3266) to job 6b115c8d as pending. crew4 and crew2 now have paid_reveals on this job.",
+  "test_credentials": {
+    "crew4": {"email": "crew4@punchlistjobs.com", "password": "Crew@123", "note": "Applied to job 6b115c8d — pending, paid_reveal done during test"},
+    "crew5": {"email": "crew5@punchlistjobs.com", "password": "Crew@123", "note": "Applied to job 6b115c8d — pending, NO paid_reveal"}
+  },
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Feature: contractor contact reveal ($2.99 demo). Test job: 6b115c8d-8041-414b-85a1-d8a6a644e0fa (contractor1). crew5 (46ff3266) is pending with NO paid_reveal — good for testing hidden state. crew3 (c9c9fdfa) has paid_reveal=True. crew1 (050fc3ca) is accepted. Backend tests in /app/backend/tests/test_reveal_contact.py. Onboarding modal always appears on first login per session for crew users — it is dismissible via Skip/Next buttons but shows multi-step wizard.",
+  "passed_tests": [
+    "Backend: GET /api/users/public/{id}?job_id= hides phone+email for pending+no reveal",
+    "Backend: has_paid_reveal=False for pending user",
+    "Backend: accepted crew sees contact info",
+    "Backend: paid_reveal crew sees contact info",
+    "Backend: POST reveal-contact idempotent (Already revealed on 2nd call)",
+    "Backend: non-crew gets 403",
+    "Backend: fresh reveal flow — contact visible after paid reveal, amount=2.99",
+    "Frontend: 'Hidden until approved' shown for pending+no reveal",
+    "Frontend: reveal-contact-btn visible when pending+no reveal",
+    "Frontend: After reveal — 'Paid Reveal' badge shown, contact info displayed",
+    "Frontend: Reveal button disappears after reveal",
+    "Frontend: Success toast 'Contact info unlocked! ($2.99 demo charge)' shown"
+  ],
+  "failed_tests": []
+}

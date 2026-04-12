@@ -410,9 +410,57 @@ async def permanent_delete_job(job_id: str, current_user: dict = Depends(get_cur
     return {"message": "Job permanently deleted"}
 
 
+
+REVEAL_CONTACT_PRICE = 2.99  # USD — one-time fee to view contractor contact while pending
+
+
+@router.post("/{job_id}/reveal-contact")
+async def reveal_contact(job_id: str, current_user: dict = Depends(get_current_user)):
+    """Crew pays a one-time fee to reveal contractor contact info before approval."""
+    if current_user["role"] != "crew":
+        raise HTTPException(status_code=403, detail="Only crew can use paid reveal")
+
+    job = await db.jobs.find_one({"id": job_id}, {"_id": 0})
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    crew_id = current_user["id"]
+
+    if crew_id not in job.get("crew_pending", []):
+        raise HTTPException(status_code=400, detail="You must have a pending application for this job")
+
+    # Idempotent: already purchased
+    if crew_id in job.get("paid_reveals", []):
+        return {"message": "Already revealed", "has_paid_reveal": True}
+
+    # Prevent new purchases when job is full
+    if len(job.get("crew_accepted", [])) >= job.get("crew_needed", 1):
+        raise HTTPException(status_code=400, detail="Job is full — contact reveal is not available")
+
+    # Record payment (demo mode — Square token optional)
+    tx_id = str(uuid.uuid4())
+    await db.payment_transactions.insert_one({
+        "id": tx_id,
+        "user_id": crew_id,
+        "amount": REVEAL_CONTACT_PRICE,
+        "currency": "USD",
+        "type": "contact_reveal",
+        "job_id": job_id,
+        "job_title": job.get("title", ""),
+        "payment_method": "demo",
+        "status": "completed",
+        "created_at": now_str(),
+    })
+
+    # Persist the reveal on the job
+    await db.jobs.update_one({"id": job_id}, {"$push": {"paid_reveals": crew_id}})
+
+    return {"message": "Contact info unlocked", "has_paid_reveal": True, "amount": REVEAL_CONTACT_PRICE}
+
+
+
 @router.post("/{job_id}/withdraw")
 async def withdraw_from_job(job_id: str, current_user: dict = Depends(get_current_user)):
-    """Crew member removes themselves from an accepted or pending job."""
     if current_user["role"] != "crew":
         raise HTTPException(status_code=403, detail="Only crew can withdraw")
     job = await db.jobs.find_one({"id": job_id})

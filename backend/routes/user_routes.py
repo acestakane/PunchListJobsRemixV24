@@ -166,23 +166,47 @@ async def verify_email(data: dict, current_user: dict = Depends(get_current_user
 
 
 @router.get("/public/{user_id}")
-async def get_public_profile(user_id: str, current_user: dict = Depends(get_current_user)):
-    """Get a user's public profile (for popup or profile page)."""
+async def get_public_profile(
+    user_id: str,
+    job_id: Optional[str] = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get a user's public profile. Pass job_id to apply pending-status masking."""
     user = await db.users.find_one({"id": user_id}, {"_id": 0, "password_hash": 0})
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    # Fetch recent ratings
     recent_ratings = await db.ratings.find(
         {"rated_id": user_id}, {"_id": 0}
     ).sort("created_at", -1).limit(5).to_list(5)
     profile = user_to_response(user)
     profile["recent_ratings"] = recent_ratings
-    # Mask phone/email for free-tier viewers (unless viewing own profile)
+
+    caller_id = current_user["id"]
     viewer_is_free = current_user.get("subscription_status") in ("free", "expired", None)
-    if viewer_is_free and user_id != current_user["id"]:
+
+    # Pending-application masking: hide contact until approved (or paid reveal)
+    has_paid_reveal = False
+    mask_for_pending = False
+    if job_id and current_user.get("role") == "crew" and user_id != caller_id:
+        job = await db.jobs.find_one(
+            {"id": job_id},
+            {"_id": 0, "crew_accepted": 1, "crew_pending": 1, "paid_reveals": 1}
+        )
+        if job:
+            is_accepted    = caller_id in job.get("crew_accepted", [])
+            is_pending     = caller_id in job.get("crew_pending", [])
+            has_paid_reveal = caller_id in job.get("paid_reveals", [])
+            if is_pending and not is_accepted and not has_paid_reveal:
+                mask_for_pending = True
+
+    if (viewer_is_free and user_id != caller_id) or mask_for_pending:
         profile.pop("phone", None)
         profile.pop("email", None)
-    await increment_profile_views(user_id, viewer_id=current_user["id"])
+
+    if job_id:
+        profile["has_paid_reveal"] = has_paid_reveal
+
+    await increment_profile_views(user_id, viewer_id=caller_id)
     return profile
 
 

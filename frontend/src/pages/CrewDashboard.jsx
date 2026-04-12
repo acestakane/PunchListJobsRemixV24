@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+const REVEAL_CONTACT_PRICE = 2.99;
 
 export default function CrewDashboard() {
   const { user, refreshUser } = useAuth();
@@ -33,6 +34,7 @@ export default function CrewDashboard() {
   const [smartMatch, setSmartMatch] = useState(false);
   const [selectedJob, setSelectedJob] = useState(null);
   const [contractorInfo, setContractorInfo] = useState(null);
+  const [revealLoading, setRevealLoading] = useState(false);
   const [subStatus, setSubStatus] = useState(null);
   const [profileCompletion, setProfileCompletion] = useState(null);
   const [crewRequests, setCrewRequests] = useState([]);
@@ -282,16 +284,29 @@ export default function CrewDashboard() {
     } catch (e) { toast.error(e?.response?.data?.detail || "Failed to open support chat"); }
   };
 
-  // Fetch contractor info when preview modal opens
+  // Fetch contractor info when preview modal opens (pass job_id for pending masking)
   useEffect(() => {
     if (selectedJob?.contractor_id) {
-      axios.get(`${API}/users/public/${selectedJob.contractor_id}`)
+      axios.get(`${API}/users/public/${selectedJob.contractor_id}?job_id=${selectedJob.id}`)
         .then(r => setContractorInfo(r.data))
         .catch(() => setContractorInfo(null));
     } else {
       setContractorInfo(null);
     }
   }, [selectedJob]);
+
+  const revealContactInfo = async () => {
+    if (!selectedJob) return;
+    setRevealLoading(true);
+    try {
+      const res = await axios.post(`${API}/jobs/${selectedJob.id}/reveal-contact`);
+      toast.success(`Contact info unlocked! ($${res.data.amount || REVEAL_CONTACT_PRICE} demo charge)`);
+      // Re-fetch contractor profile now that reveal is recorded
+      const updated = await axios.get(`${API}/users/public/${selectedJob.contractor_id}?job_id=${selectedJob.id}`);
+      setContractorInfo(updated.data);
+    } catch (e) { toast.error(e?.response?.data?.detail || "Failed to unlock contact info"); }
+    finally { setRevealLoading(false); }
+  };
 
   const acceptCrewRequest = async (requestId) => {
     try {
@@ -724,21 +739,68 @@ export default function CrewDashboard() {
               {contractorInfo && (
                 <div className="border-t border-slate-200 dark:border-slate-700 pt-3 mb-4">
                   <p className="text-xs font-semibold text-slate-500 uppercase mb-2">Contractor Contact</p>
-                  {contractorInfo.phone && (
-                    <div className="flex items-center gap-2 text-sm mb-1">
-                      <Phone className="w-3.5 h-3.5 text-[#0000FF] flex-shrink-0" />
-                      <span className={contractorInfo.phone.startsWith("*") ? "text-slate-400 italic text-xs" : "text-slate-700 dark:text-white"}>
-                        {contractorInfo.phone.startsWith("*") ? "Upgrade plan to view" : contractorInfo.phone}
-                      </span>
+                  {/* Pending + no paid reveal → show locked state + reveal button */}
+                  {pendingIds.includes(selectedJob.id) && !contractorInfo.has_paid_reveal && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm text-slate-400 italic">
+                        <Phone className="w-3.5 h-3.5 flex-shrink-0" />
+                        <span className="text-xs">Hidden until approved</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-slate-400 italic">
+                        <Mail className="w-3.5 h-3.5 flex-shrink-0" />
+                        <span className="text-xs">Hidden until approved</span>
+                      </div>
+                      {selectedJob.crew_accepted?.length < selectedJob.crew_needed && (
+                        <button
+                          onClick={revealContactInfo}
+                          disabled={revealLoading}
+                          className="w-full mt-1 py-2 rounded-lg text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-white transition-colors disabled:opacity-60"
+                          data-testid="reveal-contact-btn">
+                          {revealLoading ? "Processing..." : `Reveal Contractor Info ($${REVEAL_CONTACT_PRICE} demo)`}
+                        </button>
+                      )}
                     </div>
                   )}
-                  {contractorInfo.email && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <Mail className="w-3.5 h-3.5 text-[#0000FF] flex-shrink-0" />
-                      <span className={contractorInfo.email.startsWith("*") ? "text-slate-400 italic text-xs" : "text-slate-700 dark:text-white"}>
-                        {contractorInfo.email.startsWith("*") ? "Upgrade plan to view" : contractorInfo.email}
-                      </span>
-                    </div>
+                  {/* Approved OR paid reveal → show real contact */}
+                  {(acceptedIds.includes(selectedJob.id) || contractorInfo.has_paid_reveal) && (
+                    <>
+                      {contractorInfo.phone && (
+                        <div className="flex items-center gap-2 text-sm mb-1">
+                          <Phone className="w-3.5 h-3.5 text-[#0000FF] flex-shrink-0" />
+                          <span className="text-slate-700 dark:text-white">{contractorInfo.phone}</span>
+                          {contractorInfo.has_paid_reveal && !acceptedIds.includes(selectedJob.id) && (
+                            <span className="text-[10px] text-amber-600 bg-amber-50 dark:bg-amber-900/30 px-1.5 py-0.5 rounded-full">Paid Reveal</span>
+                          )}
+                        </div>
+                      )}
+                      {contractorInfo.email && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <Mail className="w-3.5 h-3.5 text-[#0000FF] flex-shrink-0" />
+                          <span className="text-slate-700 dark:text-white">{contractorInfo.email}</span>
+                        </div>
+                      )}
+                    </>
+                  )}
+                  {/* Not applied (just viewing) — show upgrade-gate or partial info */}
+                  {!pendingIds.includes(selectedJob.id) && !acceptedIds.includes(selectedJob.id) && !contractorInfo.has_paid_reveal && (
+                    <>
+                      {contractorInfo.phone && (
+                        <div className="flex items-center gap-2 text-sm mb-1">
+                          <Phone className="w-3.5 h-3.5 text-[#0000FF] flex-shrink-0" />
+                          <span className={contractorInfo.phone.startsWith("*") ? "text-slate-400 italic text-xs" : "text-slate-700 dark:text-white"}>
+                            {contractorInfo.phone.startsWith("*") ? "Upgrade plan to view" : contractorInfo.phone}
+                          </span>
+                        </div>
+                      )}
+                      {contractorInfo.email && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <Mail className="w-3.5 h-3.5 text-[#0000FF] flex-shrink-0" />
+                          <span className={contractorInfo.email.startsWith("*") ? "text-slate-400 italic text-xs" : "text-slate-700 dark:text-white"}>
+                            {contractorInfo.email.startsWith("*") ? "Upgrade plan to view" : contractorInfo.email}
+                          </span>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               )}
