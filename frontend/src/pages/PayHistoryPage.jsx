@@ -33,6 +33,7 @@ function TotalCard({ label, value, icon: Icon, color }) {
 export default function PayHistoryPage() {
   const { user } = useAuth();
   const isAdmin = ["admin", "superadmin"].includes(user?.role);
+  const isExpenseView = ["crew", "contractor"].includes(user?.role);
 
   const [data, setData] = useState({ transactions: [], totals: {} });
   const [loading, setLoading] = useState(true);
@@ -59,6 +60,14 @@ export default function PayHistoryPage() {
     const matchMethod = !filterMethod || tx.payment_method === filterMethod;
     return matchSearch && matchMethod;
   });
+
+  // For crew/contractor: expenses = money spent on subscriptions.
+  // Use all_time from API (full dataset); fall back to summing available transactions.
+  const totalExpenses = isExpenseView
+    ? (data.totals.all_time != null
+        ? data.totals.all_time
+        : data.transactions.reduce((sum, tx) => sum + (parseFloat(tx.amount) || 0), 0))
+    : null;
 
   return (
     <div className="min-h-screen bg-[#050A30]">
@@ -92,9 +101,11 @@ export default function PayHistoryPage() {
             {/* All-time total */}
             <div className="bg-gradient-to-r from-[#0000FF] to-[#000C66] rounded-2xl p-5 mb-8 flex items-center justify-between">
               <div>
-                <p className="text-blue-200 text-sm font-medium">All-Time Revenue</p>
-                <p className="text-white text-3xl font-extrabold" style={{ fontFamily: "Manrope, sans-serif" }}>
-                  ${(data.totals.all_time || 0).toFixed(2)}
+                <p className="text-blue-200 text-sm font-medium" data-testid="all-time-label">
+                  {isExpenseView ? "All-Time Expenses" : "All-Time Revenue"}
+                </p>
+                <p className="text-white text-3xl font-extrabold" style={{ fontFamily: "Manrope, sans-serif" }} data-testid="all-time-value">
+                  ${isExpenseView ? totalExpenses.toFixed(2) : (data.totals.all_time || 0).toFixed(2)}
                 </p>
               </div>
               <DollarSign className="w-12 h-12 text-white opacity-30" />
