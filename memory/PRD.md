@@ -39,6 +39,7 @@ Imported from: https://github.com/acestakane/PunchListJobsRemixV20.git
 - Crew Dashboard pending/approval state + duplicate application blocking (2026-04-12)
 - /pay-history shows Expenses for Crew/Contractor roles (2026-04-12)
 - Crew Transportation Type feature-flag: Admin toggle + Crew Profile field + Contractor card badge (2026-04-12)
+- Centralized alerts: read/unread state, markRead/markAllRead/clearAlert, WS events from CrewDashboard routed to Navbar alerts (2026-04-12)
 
 ## Mocked APIs (Demo Mode)
 - Square payment (no real token - auto-succeeds in demo)

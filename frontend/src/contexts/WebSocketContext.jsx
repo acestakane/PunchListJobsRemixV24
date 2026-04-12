@@ -19,9 +19,12 @@ export function WebSocketProvider({ children }) {
   const [alerts, setAlerts] = useState([]);
   const listeners = useRef([]);
   const reconnectTimer = useRef(null);
+  const alertCounter = useRef(0);
 
   const pushAlert = useCallback((text, type = "info") => {
-    setAlerts(prev => [{ id: Date.now(), text, type, ts: new Date(), read: false }, ...prev].slice(0, 20));
+    alertCounter.current += 1;
+    const id = alertCounter.current;
+    setAlerts(prev => [{ id, text, type, ts: new Date(), read: false }, ...prev].slice(0, 20));
   }, []);
 
   const clearAlerts = useCallback(() => setAlerts([]), []);
