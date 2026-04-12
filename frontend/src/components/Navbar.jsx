@@ -8,7 +8,7 @@ import { useWebSocket } from "../contexts/WebSocketContext";
 export default function Navbar({ minimal = false }) {
   const { user, logout } = useAuth();
   const { colors, isDark, toggleTheme, siteName, tagline } = useTheme();
-  const { unreadMessages, alerts, clearAlerts } = useWebSocket();
+  const { unreadMessages, alerts, clearAlerts, clearAlert, markRead, markAllRead } = useWebSocket();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [alertsOpen, setAlertsOpen] = useState(false);
@@ -58,9 +58,9 @@ export default function Navbar({ minimal = false }) {
                   title="Alerts"
                 >
                   <Bell className="w-4 h-4" />
-                  {alerts.length > 0 && (
+                  {alerts.filter(a => !a.read).length > 0 && (
                     <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center" data-testid="alerts-badge">
-                      {alerts.length > 9 ? "9+" : alerts.length}
+                      {alerts.filter(a => !a.read).length > 9 ? "9+" : alerts.filter(a => !a.read).length}
                     </span>
                   )}
                 </button>
@@ -68,9 +68,18 @@ export default function Navbar({ minimal = false }) {
                 {alertsOpen && (
                   <div className="absolute right-0 top-full mt-1 w-72 bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl z-50" data-testid="alerts-dropdown">
                     <div className="flex items-center justify-between px-3 py-2 border-b border-slate-200 dark:border-slate-700">
-                      <span className="font-bold text-sm text-slate-800 dark:text-white">Alerts</span>
+                      <span className="font-bold text-sm text-slate-800 dark:text-white">
+                        Alerts {alerts.filter(a => !a.read).length > 0 && (
+                          <span className="ml-1 text-xs font-normal text-slate-400">({alerts.filter(a => !a.read).length} unread)</span>
+                        )}
+                      </span>
                       {alerts.length > 0 && (
-                        <button onClick={clearAlerts} className="text-[10px] text-slate-400 hover:text-red-400 transition-colors" data-testid="clear-alerts-btn">Clear all</button>
+                        <div className="flex items-center gap-2">
+                          {alerts.some(a => !a.read) && (
+                            <button onClick={markAllRead} className="text-[10px] text-slate-400 hover:text-blue-400 transition-colors" data-testid="mark-all-read-btn">Mark read</button>
+                          )}
+                          <button onClick={clearAlerts} className="text-[10px] text-slate-400 hover:text-red-400 transition-colors" data-testid="clear-alerts-btn">Clear all</button>
+                        </div>
                       )}
                     </div>
                     <div className="p-2 max-h-80 overflow-y-auto">
@@ -83,15 +92,26 @@ export default function Navbar({ minimal = false }) {
                         <div className="space-y-1.5">
                           {alerts.map(a => (
                             <div key={a.id}
-                              className={`p-2 rounded-lg text-xs ${
+                              onClick={() => markRead(a.id)}
+                              className={`p-2 rounded-lg text-xs flex items-start gap-2 cursor-pointer transition-opacity ${a.read ? "opacity-50" : ""} ${
                                 a.type === "success" ? "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400" :
                                 a.type === "warning" ? "bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400" :
                                 "bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400"
                               }`}
                               data-testid={`alert-item-${a.id}`}
                             >
-                              <p className="font-semibold leading-tight">{a.text}</p>
-                              <p className="text-[10px] opacity-60 mt-0.5">{a.ts.toLocaleTimeString()}</p>
+                              {!a.read && <span className="w-1.5 h-1.5 rounded-full bg-current mt-1 flex-shrink-0 opacity-70" />}
+                              <div className="flex-1 min-w-0">
+                                <p className={`leading-tight ${a.read ? "font-normal" : "font-semibold"}`}>{a.text}</p>
+                                <p className="text-[10px] opacity-60 mt-0.5">{a.ts.toLocaleTimeString()}</p>
+                              </div>
+                              <button
+                                onClick={e => { e.stopPropagation(); clearAlert(a.id); }}
+                                className="flex-shrink-0 opacity-40 hover:opacity-100 transition-opacity mt-0.5"
+                                data-testid={`clear-alert-${a.id}`}
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
                             </div>
                           ))}
                         </div>

@@ -21,10 +21,22 @@ export function WebSocketProvider({ children }) {
   const reconnectTimer = useRef(null);
 
   const pushAlert = useCallback((text, type = "info") => {
-    setAlerts(prev => [{ id: Date.now(), text, type, ts: new Date() }, ...prev].slice(0, 8));
+    setAlerts(prev => [{ id: Date.now(), text, type, ts: new Date(), read: false }, ...prev].slice(0, 20));
   }, []);
 
   const clearAlerts = useCallback(() => setAlerts([]), []);
+
+  const clearAlert = useCallback((id) => {
+    setAlerts(prev => prev.filter(a => a.id !== id));
+  }, []);
+
+  const markRead = useCallback((id) => {
+    setAlerts(prev => prev.map(a => a.id === id ? { ...a, read: true } : a));
+  }, []);
+
+  const markAllRead = useCallback(() => {
+    setAlerts(prev => prev.map(a => ({ ...a, read: true })));
+  }, []);
 
   // Poll unread message count
   useEffect(() => {
@@ -123,7 +135,7 @@ export function WebSocketProvider({ children }) {
   }, [sendMessage]);
 
   return (
-    <WebSocketContext.Provider value={{ connected, lastMessage, sendMessage, addListener, sendLocation, unreadMessages, setUnreadMessages, alerts, pushAlert, clearAlerts }}>
+    <WebSocketContext.Provider value={{ connected, lastMessage, sendMessage, addListener, sendLocation, unreadMessages, setUnreadMessages, alerts, pushAlert, clearAlerts, clearAlert, markRead, markAllRead }}>
       {children}
     </WebSocketContext.Provider>
   );

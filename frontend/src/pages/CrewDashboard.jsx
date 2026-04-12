@@ -19,7 +19,7 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 export default function CrewDashboard() {
   const { user, refreshUser } = useAuth();
   const navigate = useNavigate();
-  const { addListener, sendLocation, connected } = useWebSocket();
+  const { addListener, sendLocation, connected, pushAlert } = useWebSocket();
   const [view, setView] = useState("map");
   const [jobs, setJobs] = useState([]);
   const [myJobs, setMyJobs] = useState([]);
@@ -124,38 +124,48 @@ export default function CrewDashboard() {
       if (msg.type === "new_job") {
         setJobs(prev => [msg.job, ...prev.filter(j => j.id !== msg.job.id)]);
         const prefix = msg.job.is_emergency ? "EMERGENCY: " : "New job: ";
-        toast.info(`${prefix}${msg.job.title} - $${msg.job.pay_rate}/hr`, {
-          action: { label: "View", onClick: () => setSelectedJob(msg.job) }
-        });
+        const text = `${prefix}${msg.job.title} - $${msg.job.pay_rate}/hr`;
+        toast.info(text, { action: { label: "View", onClick: () => setSelectedJob(msg.job) } });
+        pushAlert(text, msg.job.is_emergency ? "warning" : "info");
       }
       if (msg.type === "crew_request") {
-        toast.info(`${msg.contractor_name} wants to hire you!`, {
-          action: { label: "View", onClick: () => fetchCrewRequests() }
-        });
+        const text = `${msg.contractor_name} wants to hire you!`;
+        toast.info(text, { action: { label: "View", onClick: () => fetchCrewRequests() } });
+        pushAlert(text, "info");
         fetchCrewRequests();
       }
       if (msg.type === "cancel_accepted") {
-        toast.success(`Your cancel request for "${msg.job_title}" was approved.`);
+        const text = `Your cancel request for "${msg.job_title}" was approved.`;
+        toast.success(text);
+        pushAlert(text, "success");
         fetchMyJobs(); fetchJobs();
       }
       if (msg.type === "cancel_denied") {
-        toast.info(`Your cancel request for "${msg.job_title}" was denied.`);
+        const text = `Your cancel request for "${msg.job_title}" was denied.`;
+        toast.info(text);
+        pushAlert(text, "info");
       }
       if (msg.type === "application_approved") {
-        toast.success(`Your application for "${msg.job_title}" was approved!`);
+        const text = `Your application for "${msg.job_title}" was approved!`;
+        toast.success(text);
+        pushAlert(text, "success");
         fetchMyJobs(); fetchJobs();
       }
       if (msg.type === "application_declined") {
-        toast.info(`Your application for "${msg.job_title}" was not selected.`);
+        const text = `Your application for "${msg.job_title}" was not selected.`;
+        toast.info(text);
+        pushAlert(text, "info");
         fetchMyJobs();
       }
       if (msg.type === "job_started") {
-        toast.success(`"${msg.job_title}" has started! Proceed to site.`);
+        const text = `"${msg.job_title}" has started! Proceed to site.`;
+        toast.success(text);
+        pushAlert(text, "success");
         fetchMyJobs();
       }
     });
     return remove;
-  }, [addListener, fetchCrewRequests, fetchMyJobs, fetchJobs]);
+  }, [addListener, fetchCrewRequests, fetchMyJobs, fetchJobs, pushAlert]);
 
   // Location toggle handler with live GPS tracking (watchPosition)
   const toggleLocation = () => {
