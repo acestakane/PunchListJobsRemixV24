@@ -42,6 +42,7 @@ Imported from: https://github.com/acestakane/PunchListJobsRemixV20.git
 - Centralized alerts: read/unread state, markRead/markAllRead/clearAlert, WS events from CrewDashboard routed to Navbar alerts (2026-04-12)
 - Contractor contact info hidden when crew application is PENDING (2026-04-12)
 - Paid Reveal: crew can unlock contractor contact for $2.99 (demo) while pending+job not full; persists after purchase (2026-04-12)
+- Share Approved Jobs: crew can share job link (/j/:jobId) only when accepted; public page shows sanitized data (city/state only, no address/coords) with sign-in CTA for guests (2026-04-12)
 
 ## Mocked APIs (Demo Mode)
 - Square payment (no real token - auto-succeeds in demo)
