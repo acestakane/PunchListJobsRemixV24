@@ -335,6 +335,38 @@ async def auto_start_jobs():
         logger.error(f"Auto-start jobs cron error: {e}")
 
 
+async def auto_status_jobs():
+    """Time-based job status automation for idle open jobs with no crew accepted.
+    24h → suspended | 48h → cancelled | 72h → archived
+    Only acts on jobs with no accepted crew (never disrupts active workflows).
+    """
+    try:
+        now_utc = datetime.now(timezone.utc)
+        cutoff_24h = (now_utc - timedelta(hours=24)).isoformat()
+        cutoff_48h = (now_utc - timedelta(hours=48)).isoformat()
+        cutoff_72h = (now_utc - timedelta(hours=72)).isoformat()
+
+        idle = {"crew_accepted": {"$size": 0}, "is_archived": {"$ne": True}}
+
+        r1 = await db.jobs.update_many(
+            {**idle, "status": "open", "created_at": {"$lt": cutoff_24h}},
+            {"$set": {"status": "suspended"}},
+        )
+        r2 = await db.jobs.update_many(
+            {**idle, "status": "suspended", "created_at": {"$lt": cutoff_48h}},
+            {"$set": {"status": "cancelled"}},
+        )
+        r3 = await db.jobs.update_many(
+            {**idle, "status": "cancelled", "created_at": {"$lt": cutoff_72h}},
+            {"$set": {"is_archived": True, "status": "cancelled"}},
+        )
+        total = r1.modified_count + r2.modified_count + r3.modified_count
+        if total:
+            logger.info(f"auto_status_jobs: suspended={r1.modified_count} cancelled={r2.modified_count} archived={r3.modified_count}")
+    except Exception as e:
+        logger.error(f"auto_status_jobs cron error: {e}")
+
+
 _SEED_TRADES = [
     {"name": "Carpentry",     "trades": ["Framing", "Rough Carpentry", "Finish Carpentry", "Cabinet Making", "Deck Building", "Drywall Hanging"]},
     {"name": "Electrical",    "trades": ["Wiring", "Panel Install", "Lighting", "Low Voltage", "Solar Install"]},
@@ -476,6 +508,7 @@ async def startup_event():
     scheduler.add_job(hide_old_completed_jobs, "interval", hours=1, id="hide_jobs_cron", replace_existing=True)
     scheduler.add_job(expire_emergency_jobs, "interval", minutes=15, id="emergency_expiry_cron", replace_existing=True)
     scheduler.add_job(auto_start_jobs, "interval", minutes=5, id="auto_start_jobs_cron", replace_existing=True)
+    scheduler.add_job(auto_status_jobs, "interval", hours=1, id="auto_status_jobs_cron", replace_existing=True)
     scheduler.start()
 
     await seed_trades()

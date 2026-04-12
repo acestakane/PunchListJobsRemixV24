@@ -8,7 +8,7 @@ import {
   CalendarDays, Clock, DollarSign, MapPin, Building2, Briefcase,
   MessageCircle, Navigation, Calendar, Search, Ban, BellOff,
   PauseCircle, Loader2, Inbox, User, Phone, Mail, CheckCircle2,
-  ChevronRight, X
+  ChevronRight, X, Square, CheckSquare, Star, Flag, CheckCircle
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -59,7 +59,7 @@ function openDirections(job) {
 
 // ── Itinerary Card ────────────────────────────────────────────────────────────
 
-function ItineraryCard({ job, isSelected, dimmed, onSelect, role }) {
+function ItineraryCard({ job, isSelected, dimmed, onSelect, role, onTaskCheck, userId }) {
   const loc = job.location || {};
   const street = (job.address || loc.address || "").split(",")[0].trim();
   const city = loc.city || "";
@@ -175,6 +175,29 @@ function ItineraryCard({ job, isSelected, dimmed, onSelect, role }) {
               </div>
             </div>
           )}
+
+          {/* PunchList Task Checklist */}
+          {job.tasks?.length > 0 && (
+            <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700">
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">PunchList</p>
+              <ul className="space-y-1.5">
+                {job.tasks.map((task, idx) => {
+                  const actorKey = role === "contractor" ? "contractor" : userId;
+                  const checked = !!(job.task_completions?.[actorKey]?.[idx]);
+                  return (
+                    <li key={idx} className="flex items-center gap-2 cursor-pointer group"
+                      onClick={e => { e.stopPropagation(); onTaskCheck && onTaskCheck(job.id, idx, !checked); }}
+                      data-testid={`task-check-${job.id}-${idx}`}>
+                      {checked
+                        ? <CheckSquare className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                        : <Square className="w-4 h-4 text-slate-300 group-hover:text-[#0000FF] flex-shrink-0 transition-colors" />}
+                      <span className={`text-xs ${checked ? "line-through text-slate-400" : "text-slate-700 dark:text-slate-300"}`}>{task}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
         </div>
       )}
 
@@ -201,6 +224,42 @@ function EmptyPane({ label }) {
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
+function RatingModal({ data, onSubmit, onClose }) {
+  const [stars, setStars] = useState(0);
+  const [review, setReview] = useState("");
+  return (
+    <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center px-4 pb-6 bg-black/50" data-testid="rating-modal">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 w-full max-w-md shadow-2xl">
+        <h3 className="font-bold text-[#050A30] dark:text-white mb-3 flex items-center gap-2">
+          <Star className="w-4 h-4 text-amber-500" /> Rate {data.ratedName}
+        </h3>
+        <div className="flex gap-2 mb-3">
+          {[1,2,3,4,5].map(n => (
+            <button key={n} type="button" onClick={() => setStars(n)} data-testid={`star-${n}`}
+              className={`p-1 transition-colors ${n <= stars ? "text-amber-400" : "text-slate-200 dark:text-slate-600"}`}>
+              <Star className="w-7 h-7 fill-current" />
+            </button>
+          ))}
+        </div>
+        <textarea value={review} onChange={e => setReview(e.target.value)} rows={3}
+          className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0000FF] dark:bg-slate-800 dark:text-white mb-3 resize-none"
+          placeholder="Leave a review (optional)…" data-testid="rating-review-input" />
+        <div className="flex gap-2">
+          <button onClick={() => stars > 0 && onSubmit(stars, review)} disabled={stars === 0}
+            className="flex-1 py-2.5 rounded-xl font-bold text-white bg-amber-500 hover:bg-amber-600 disabled:opacity-50 transition-colors text-sm" data-testid="rating-submit-btn">
+            Submit Rating
+          </button>
+          <button onClick={onClose}
+            className="px-4 py-2.5 rounded-xl font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 transition-colors text-sm">
+            Skip
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
 export default function JobsItinerary() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -210,6 +269,9 @@ export default function JobsItinerary() {
   const [activePane, setActivePane] = useState(null); // "upcoming" | "past"
   const [actionLoading, setActionLoading] = useState(null);
   const [search, setSearch] = useState("");
+  const [disputeJobId, setDisputeJobId] = useState(null);
+  const [disputeReason, setDisputeReason] = useState("");
+  const [ratingData, setRatingData] = useState(null); // {jobId, ratedId, ratedName}
 
   const role = user?.role;
 
@@ -311,6 +373,58 @@ export default function JobsItinerary() {
   const isContractor = ["contractor", "admin", "superadmin"].includes(role);
   const isCrew = role === "crew";
 
+  const handleTaskCheck = async (jobId, taskIdx, checked) => {
+    try {
+      await axios.put(`${API}/jobs/${jobId}/task-check`, { task_idx: taskIdx, checked });
+      setJobs(prev => prev.map(j => {
+        if (j.id !== jobId) return j;
+        const actorKey = isContractor ? "contractor" : user?.id;
+        const existing = j.task_completions || {};
+        return { ...j, task_completions: { ...existing, [actorKey]: { ...(existing[actorKey] || {}), [taskIdx]: checked } } };
+      }));
+    } catch { toast.error("Failed to update task"); }
+  };
+
+  const handleCrewComplete = async () => {
+    if (!selectedJob) return;
+    try {
+      await axios.post(`${API}/jobs/${selectedJob.id}/crew-complete`);
+      toast.success("Job completion submitted!");
+      fetchItinerary();
+      // Prompt crew to rate contractor
+      if (selectedJob.contractor_id) {
+        setRatingData({ jobId: selectedJob.id, ratedId: selectedJob.contractor_id, ratedName: selectedJob.contractor_name || "Contractor" });
+      }
+    } catch (e) { toast.error(e?.response?.data?.detail || "Failed to submit"); }
+  };
+
+  const handleContractorComplete = async () => {
+    if (!selectedJob) return;
+    try {
+      await axios.post(`${API}/jobs/${selectedJob.id}/contractor-complete`);
+      toast.success("Job marked complete!");
+      fetchItinerary();
+    } catch (e) { toast.error(e?.response?.data?.detail || "Failed to complete"); }
+  };
+
+  const submitDispute = async () => {
+    if (!disputeJobId || !disputeReason.trim()) { toast.error("Please enter a dispute reason"); return; }
+    try {
+      await axios.post(`${API}/jobs/${disputeJobId}/dispute`, { reason: disputeReason });
+      toast.success("Dispute submitted for admin review");
+      setDisputeJobId(null); setDisputeReason("");
+    } catch (e) { toast.error(e?.response?.data?.detail || "Failed to submit dispute"); }
+  };
+
+  const submitRating = async (stars, review) => {
+    if (!ratingData) return;
+    try {
+      await axios.post(`${API}/jobs/${ratingData.jobId}/rate`, { rated_id: ratingData.ratedId, stars, review });
+      toast.success("Rating submitted!");
+      setRatingData(null);
+    } catch (e) { toast.error(e?.response?.data?.detail || "Failed to submit rating"); }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#0d1117]">
       <Navbar />
@@ -396,9 +510,11 @@ export default function JobsItinerary() {
                           key={job.id}
                           job={job}
                           role={role}
+                          userId={user?.id}
                           isSelected={selectedJobId === job.id}
                           dimmed={activePane === "past" && selectedJobId !== null}
                           onSelect={(id) => selectCard(id, "upcoming")}
+                          onTaskCheck={handleTaskCheck}
                         />
                       ))
                   }
@@ -431,9 +547,11 @@ export default function JobsItinerary() {
                           key={job.id}
                           job={job}
                           role={role}
+                          userId={user?.id}
                           isSelected={selectedJobId === job.id}
                           dimmed={activePane === "upcoming" && selectedJobId !== null}
                           onSelect={(id) => selectCard(id, "past")}
+                          onTaskCheck={handleTaskCheck}
                         />
                       ))
                   }
@@ -559,6 +677,52 @@ export default function JobsItinerary() {
                 Add to Calendar
               </button>
 
+              {/* Submit Complete — Crew */}
+              {isCrew && selectedJob && (
+                <button
+                  onClick={handleCrewComplete}
+                  disabled={!!actionLoading}
+                  data-testid="footer-crew-complete-btn"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors disabled:opacity-50"
+                >
+                  <CheckCircle className="w-3.5 h-3.5" /> Submit Complete
+                </button>
+              )}
+
+              {/* Set Complete — Contractor */}
+              {isContractor && selectedJob && (
+                <button
+                  onClick={handleContractorComplete}
+                  disabled={!!actionLoading}
+                  data-testid="footer-contractor-complete-btn"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors disabled:opacity-50"
+                >
+                  <CheckCircle className="w-3.5 h-3.5" /> Set Complete
+                </button>
+              )}
+
+              {/* Report Issue */}
+              {selectedJob && (
+                <button
+                  onClick={() => { setDisputeJobId(selectedJob.id); setDisputeReason(""); }}
+                  data-testid="footer-dispute-btn"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold text-slate-500 border border-slate-200 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                >
+                  <Flag className="w-3.5 h-3.5" /> Report Issue
+                </button>
+              )}
+
+              {/* Rate — post completion */}
+              {isCrew && selectedJob?.status === "completed_pending_review" && selectedJob?.contractor_id && (
+                <button
+                  onClick={() => setRatingData({ jobId: selectedJob.id, ratedId: selectedJob.contractor_id, ratedName: selectedJob.contractor_name || "Contractor" })}
+                  data-testid="footer-rate-btn"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold text-amber-600 border border-amber-200 dark:border-amber-700 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors"
+                >
+                  <Star className="w-3.5 h-3.5" /> Rate Contractor
+                </button>
+              )}
+
               {/* Deselect */}
               <button
                 onClick={() => { setSelectedJobId(null); setActivePane(null); }}
@@ -572,6 +736,35 @@ export default function JobsItinerary() {
           </div>
         </div>
       </div>
+
+      {/* Dispute Modal */}
+      {disputeJobId && (
+        <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center px-4 pb-6 bg-black/50" data-testid="dispute-modal">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 w-full max-w-md shadow-2xl">
+            <h3 className="font-bold text-[#050A30] dark:text-white mb-3 flex items-center gap-2">
+              <Flag className="w-4 h-4 text-red-500" /> Report an Issue
+            </h3>
+            <textarea value={disputeReason} onChange={e => setDisputeReason(e.target.value)} rows={4}
+              className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0000FF] dark:bg-slate-800 dark:text-white mb-3 resize-none"
+              placeholder="Describe the issue…" data-testid="dispute-reason-input" />
+            <div className="flex gap-2">
+              <button onClick={submitDispute}
+                className="flex-1 py-2.5 rounded-xl font-bold text-white bg-red-600 hover:bg-red-700 transition-colors text-sm" data-testid="dispute-submit-btn">
+                Submit
+              </button>
+              <button onClick={() => setDisputeJobId(null)}
+                className="px-4 py-2.5 rounded-xl font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 transition-colors text-sm">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Rating Modal */}
+      {ratingData && (
+        <RatingModal data={ratingData} onSubmit={submitRating} onClose={() => setRatingData(null)} />
+      )}
     </div>
   );
 }

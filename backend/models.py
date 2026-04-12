@@ -87,6 +87,7 @@ class JobCreate(BaseModel):
     address: str
     is_emergency: bool = False
     is_boosted: bool = False
+    tasks: List[str] = []
 
 
 class JobUpdate(BaseModel):
@@ -99,6 +100,16 @@ class JobUpdate(BaseModel):
     address: Optional[str] = None
     is_emergency: Optional[bool] = None
     is_boosted: Optional[bool] = None
+    tasks: Optional[List[str]] = None
+
+
+class TaskCheckRequest(BaseModel):
+    task_idx: int
+    checked: bool
+
+
+class DisputeCreate(BaseModel):
+    reason: str
 
 
 # ─── Rating Models ───────────────────────────────────────────────────────────

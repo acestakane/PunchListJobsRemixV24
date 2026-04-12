@@ -1,9 +1,11 @@
 import uuid
+from pathlib import Path
 from datetime import datetime, timezone, timedelta
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, HTTPException, Depends, Query, UploadFile, File
+from typing import List
 from database import db
 from auth import get_current_user, user_to_response
-from models import JobCreate, JobUpdate, RatingCreate
+from models import JobCreate, JobUpdate, RatingCreate, TaskCheckRequest, DisputeCreate
 from utils.geocoding import geocode_address, haversine_distance
 from utils.email_utils import send_job_completion_email
 from utils.matching import sort_jobs_for_crew
@@ -25,6 +27,8 @@ def now_str():
 async def create_job(data: JobCreate, current_user: dict = Depends(get_current_user)):
     if current_user["role"] != "contractor":
         raise HTTPException(status_code=403, detail="Only contractors can post jobs")
+    if not data.description.strip():
+        raise HTTPException(status_code=400, detail="Description is required")
     await check_and_enforce_limit(current_user, "post")
 
     # Geocode the address
@@ -47,6 +51,10 @@ async def create_job(data: JobCreate, current_user: dict = Depends(get_current_u
         "status": "open",
         "is_emergency": data.is_emergency,
         "is_boosted": data.is_boosted,
+        "tasks": [t.strip() for t in data.tasks if t.strip()],
+        "images": [],
+        "task_completions": {},
+        "crew_submitted_at": {},
         "created_at": now_str(),
         "completed_at": None,
         "rated_crew": [],
@@ -485,6 +493,113 @@ async def reveal_contact(job_id: str, current_user: dict = Depends(get_current_u
 
     return {"message": "Contact info unlocked", "has_paid_reveal": True, "amount": REVEAL_CONTACT_PRICE}
 
+
+# ── UPLOAD DIRECTORY ──────────────────────────────────────────────────────────
+_JOB_IMG_DIR = Path("/app/backend/uploads/job_images")
+_ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp"}
+
+
+@router.post("/{job_id}/images")
+async def upload_job_images(
+    job_id: str,
+    files: List[UploadFile] = File(...),
+    current_user: dict = Depends(get_current_user),
+):
+    """Upload up to 4 images for a job (contractor only)."""
+    job = await db.jobs.find_one({"id": job_id}, {"_id": 0, "contractor_id": 1, "images": 1})
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    if job["contractor_id"] != current_user["id"]:
+        raise HTTPException(status_code=403, detail="Only the job contractor can upload images")
+    existing = job.get("images", [])
+    if len(existing) + len(files) > 4:
+        raise HTTPException(status_code=400, detail=f"Max 4 images allowed (already have {len(existing)})")
+    _JOB_IMG_DIR.mkdir(parents=True, exist_ok=True)
+    new_urls: list[str] = []
+    for f in files:
+        if f.content_type not in _ALLOWED_IMAGE_TYPES:
+            raise HTTPException(status_code=400, detail=f"Unsupported file type: {f.content_type}")
+        ext = (f.filename or "img").rsplit(".", 1)[-1].lower()
+        fname = f"{uuid.uuid4()}.{ext}"
+        content = await f.read()
+        (_JOB_IMG_DIR / fname).write_bytes(content)
+        new_urls.append(f"/api/uploads/job_images/{fname}")
+    await db.jobs.update_one({"id": job_id}, {"$push": {"images": {"$each": new_urls}}})
+    return {"images": existing + new_urls}
+
+
+@router.put("/{job_id}/task-check")
+async def toggle_task(job_id: str, body: TaskCheckRequest, current_user: dict = Depends(get_current_user)):
+    """Toggle a single task completion for the current user."""
+    job = await db.jobs.find_one({"id": job_id}, {"_id": 0, "tasks": 1, "contractor_id": 1})
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    tasks = job.get("tasks", [])
+    if body.task_idx < 0 or body.task_idx >= len(tasks):
+        raise HTTPException(status_code=400, detail="Invalid task index")
+    # Key: contractor uses "contractor", crew uses their user ID
+    actor = "contractor" if current_user["id"] == job["contractor_id"] else current_user["id"]
+    field = f"task_completions.{actor}.{body.task_idx}"
+    await db.jobs.update_one({"id": job_id}, {"$set": {field: body.checked}})
+    return {"ok": True}
+
+
+@router.post("/{job_id}/crew-complete")
+async def crew_complete(job_id: str, current_user: dict = Depends(get_current_user)):
+    """Crew member marks the job as complete from their side."""
+    if current_user["role"] != "crew":
+        raise HTTPException(status_code=403, detail="Crew only")
+    job = await db.jobs.find_one({"id": job_id}, {"_id": 0, "crew_accepted": 1, "status": 1})
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    if current_user["id"] not in job.get("crew_accepted", []):
+        raise HTTPException(status_code=403, detail="You are not assigned to this job")
+    ts = now_str()
+    await db.jobs.update_one(
+        {"id": job_id},
+        {"$set": {f"crew_submitted_at.{current_user['id']}": ts}},
+    )
+    return {"message": "Submission recorded", "submitted_at": ts}
+
+
+@router.post("/{job_id}/contractor-complete")
+async def contractor_complete(job_id: str, current_user: dict = Depends(get_current_user)):
+    """Contractor sets the job as fully complete."""
+    if current_user["role"] != "contractor":
+        raise HTTPException(status_code=403, detail="Contractor only")
+    job = await db.jobs.find_one({"id": job_id}, {"_id": 0, "contractor_id": 1, "status": 1})
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    if job["contractor_id"] != current_user["id"]:
+        raise HTTPException(status_code=403, detail="Not your job")
+    ts = now_str()
+    await db.jobs.update_one(
+        {"id": job_id},
+        {"$set": {"status": "completed_pending_review", "contractor_completed_at": ts}},
+    )
+    return {"message": "Job marked complete", "completed_at": ts}
+
+
+@router.post("/{job_id}/dispute")
+async def create_dispute(job_id: str, body: DisputeCreate, current_user: dict = Depends(get_current_user)):
+    """Submit a dispute/support request for a job."""
+    if not body.reason.strip():
+        raise HTTPException(status_code=400, detail="Dispute reason is required")
+    job = await db.jobs.find_one({"id": job_id}, {"_id": 0, "title": 1})
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    doc = {
+        "id": str(uuid.uuid4()),
+        "job_id": job_id,
+        "job_title": job.get("title", ""),
+        "user_id": current_user["id"],
+        "user_role": current_user["role"],
+        "reason": body.reason.strip(),
+        "status": "open",
+        "created_at": now_str(),
+    }
+    await db.disputes.insert_one(doc)
+    return {"message": "Dispute submitted for admin review", "id": doc["id"]}
 
 
 @router.post("/{job_id}/withdraw")

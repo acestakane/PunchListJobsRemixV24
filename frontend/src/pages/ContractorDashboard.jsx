@@ -257,8 +257,10 @@ export default function ContractorDashboard() {
   const [showCompleteProfilePopup, setShowCompleteProfilePopup] = useState(false);
   const [jobForm, setJobForm] = useState({
     title: "", description: "", trade: "", crew_needed: 1,
-    start_time: "", pay_rate: "", address: "", is_emergency: false, is_boosted: false
+    start_time: "", pay_rate: "", address: "", is_emergency: false, is_boosted: false, tasks: []
   });
+  const [jobImages, setJobImages] = useState([]);
+  const [taskInput, setTaskInput] = useState("");
   // Address autofill
   const [addressSuggestions, setAddressSuggestions] = useState([]);
   const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
@@ -373,7 +375,15 @@ export default function ContractorDashboard() {
   const createJob = async (e) => {
     e.preventDefault();
     try {
-      await axios.post(`${API}/jobs/`, { ...jobForm, crew_needed: Number(jobForm.crew_needed), pay_rate: Number(jobForm.pay_rate) });
+      const res = await axios.post(`${API}/jobs/`, { ...jobForm, crew_needed: Number(jobForm.crew_needed), pay_rate: Number(jobForm.pay_rate) });
+      // Upload images if any were selected
+      if (jobImages.length > 0) {
+        try {
+          const fd = new FormData();
+          jobImages.forEach(f => fd.append("files", f));
+          await axios.post(`${API}/jobs/${res.data.id}/images`, fd, { headers: { "Content-Type": "multipart/form-data" } });
+        } catch { /* image upload failure is non-fatal */ }
+      }
       const msg = jobForm.is_emergency ? "Emergency alert sent! Crew will be notified." : "Job posted! Workers will be notified instantly.";
       toast.success(msg);
       closeJobForm();
@@ -502,7 +512,9 @@ export default function ContractorDashboard() {
     setCopyEditMode(false);
     setAddressSuggestions([]);
     setShowAddressSuggestions(false);
-    setJobForm({ title: "", description: "", trade: "", crew_needed: 1, start_time: "", pay_rate: "", address: "", is_emergency: false, is_boosted: false });
+    setJobForm({ title: "", description: "", trade: "", crew_needed: 1, start_time: "", pay_rate: "", address: "", is_emergency: false, is_boosted: false, tasks: [] });
+    setJobImages([]);
+    setTaskInput("");
   };
 
   // Job lifecycle actions
@@ -559,6 +571,7 @@ export default function ContractorDashboard() {
       address: job.address || job.location?.full_address || job.location?.address || "",
       is_emergency: false,
       is_boosted: false,
+      tasks: [],
     });
     setCopyEditMode(true);
     setShowJobForm(true);
@@ -992,10 +1005,52 @@ export default function ContractorDashboard() {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-[#050A30] dark:text-white mb-1">Description</label>
-                <textarea value={jobForm.description} onChange={e => updateForm("description", e.target.value)} rows={3}
+                <label className="block text-sm font-semibold text-[#050A30] dark:text-white mb-1">Description <span className="text-red-500">*</span></label>
+                <textarea value={jobForm.description} onChange={e => updateForm("description", e.target.value)} rows={3} required
                   className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-[#0000FF] dark:bg-slate-800 dark:text-white"
                   placeholder="Describe the work..." data-testid="job-desc-input" />
+              </div>
+
+              {/* PunchList Tasks */}
+              <div>
+                <label className="block text-sm font-semibold text-[#050A30] dark:text-white mb-1">PunchList Tasks</label>
+                <div className="flex gap-2 mb-2">
+                  <input value={taskInput} onChange={e => setTaskInput(e.target.value)}
+                    onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); if (taskInput.trim()) { updateForm("tasks", [...jobForm.tasks, taskInput.trim()]); setTaskInput(""); } } }}
+                    className="flex-1 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0000FF] dark:bg-slate-800 dark:text-white"
+                    placeholder="Add a task…" data-testid="task-input" />
+                  <button type="button" onClick={() => { if (taskInput.trim()) { updateForm("tasks", [...jobForm.tasks, taskInput.trim()]); setTaskInput(""); } }}
+                    className="px-3 py-2 bg-[#0000FF] text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-colors" data-testid="add-task-btn">
+                    Add
+                  </button>
+                </div>
+                {jobForm.tasks.length > 0 && (
+                  <ul className="space-y-1" data-testid="task-list">
+                    {jobForm.tasks.map((t, i) => (
+                      <li key={i} className="flex items-center justify-between bg-slate-50 dark:bg-slate-800 rounded px-3 py-1.5 text-sm text-slate-700 dark:text-slate-300">
+                        <span>{t}</span>
+                        <button type="button" onClick={() => updateForm("tasks", jobForm.tasks.filter((_, j) => j !== i))}
+                          className="text-slate-400 hover:text-red-500 ml-2 transition-colors" data-testid={`remove-task-${i}`}>✕</button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              {/* Job Images (max 4) */}
+              <div>
+                <label className="block text-sm font-semibold text-[#050A30] dark:text-white mb-1">Job Images <span className="text-xs text-slate-400">(max 4, jpeg/png/webp)</span></label>
+                <input type="file" multiple accept="image/jpeg,image/png,image/webp"
+                  onChange={e => {
+                    const valid = Array.from(e.target.files).filter(f => ["image/jpeg","image/png","image/webp"].includes(f.type));
+                    if (valid.length > 4) { toast.error("Max 4 images allowed"); return; }
+                    setJobImages(valid);
+                  }}
+                  className="block w-full text-sm text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-blue-50 file:text-[#0000FF] hover:file:bg-blue-100 transition-colors"
+                  data-testid="job-images-input" />
+                {jobImages.length > 0 && (
+                  <p className="text-xs text-slate-400 mt-1">{jobImages.length} image{jobImages.length > 1 ? "s" : ""} selected</p>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
