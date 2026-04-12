@@ -44,6 +44,9 @@ class TokenResponse(BaseModel):
 
 # ─── User Models ─────────────────────────────────────────────────────────────
 
+TRANSPORTATION_TYPES = ["Car", "SUV", "Truck", "Van", "Rideshare", "Public Transit", "Other"]
+
+
 class ProfileUpdate(BaseModel):
     name: Optional[str] = None
     first_name: Optional[str] = None
@@ -59,6 +62,7 @@ class ProfileUpdate(BaseModel):
     company_name: Optional[str] = None
     hide_location: Optional[bool] = None
     email: Optional[str] = None
+    transportation_type: Optional[str] = None
 
 
 class OnlineStatusUpdate(BaseModel):
@@ -177,6 +181,7 @@ class SettingsUpdate(BaseModel):
     nav_bg_color: Optional[str] = None
     site_name: Optional[str] = None
     tagline: Optional[str] = None
+    enable_crew_transportation_type: Optional[bool] = None
 
 
 class CouponCreate(BaseModel):

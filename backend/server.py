@@ -69,7 +69,7 @@ async def public_settings():
         return defaults
     public_keys = (
         "show_verification_sidebar", "accent_color", "brand_color", "nav_bg_color",
-        "site_name", "tagline"
+        "site_name", "tagline", "enable_crew_transportation_type"
     )
     result = {k: v for k, v in settings.items() if k.startswith("social_") or k in public_keys}
     return {**defaults, **result}

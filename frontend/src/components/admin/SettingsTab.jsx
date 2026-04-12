@@ -61,6 +61,21 @@ export default function SettingsTab() {
       </div>
 
       <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-700">
+        <h4 className="font-bold text-[#050A30] dark:text-white mb-4 text-sm" style={{ fontFamily: "Manrope, sans-serif" }}>Crew Features</h4>
+        <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
+          <div>
+            <p className="text-sm font-semibold text-[#050A30] dark:text-white">Crew Transportation Type</p>
+            <p className="text-xs text-slate-400">Require crew to specify their mode of transportation</p>
+          </div>
+          <div onClick={() => setEditSettings(f => ({ ...f, enable_crew_transportation_type: !f.enable_crew_transportation_type }))}
+            className={`relative w-10 h-5 rounded-full cursor-pointer transition-colors flex items-center px-0.5 ${editSettings.enable_crew_transportation_type ? "bg-blue-600" : "bg-slate-300"}`}
+            data-testid="setting-enable_crew_transportation_type">
+            <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${editSettings.enable_crew_transportation_type ? "translate-x-5" : ""}`} />
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-700">
         <h4 className="font-bold text-[#050A30] dark:text-white mb-4 text-sm" style={{ fontFamily: "Manrope, sans-serif" }}>UI Visibility</h4>
         <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
           <div>

@@ -412,7 +412,8 @@ async def get_settings(admin: dict = Depends(require_admin)):
             "daily_price": 1.99, "weekly_price": 9.99, "monthly_price": 29.99, "annual_price": 179.94,
             "trial_days": 30, "job_visibility_hours": 12,
             "social_linkedin_enabled": True, "social_twitter_enabled": True,
-            "social_facebook_enabled": True, "social_native_share_enabled": True
+            "social_facebook_enabled": True, "social_native_share_enabled": True,
+            "enable_crew_transportation_type": False,
         }
     return settings
 

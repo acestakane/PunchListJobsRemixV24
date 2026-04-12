@@ -125,6 +125,7 @@ export default function ProfilePage() {
   const [portfolio, setPortfolio] = useState([]);
   const [uploadingPortfolio, setUploadingPortfolio] = useState(false);
   const [boostStatus, setBoostStatus] = useState(null);
+  const [pubSettings, setPubSettings] = useState({});
   // Email verification state
   const [pendingEmail, setPendingEmail] = useState(null);
   const [emailVerifyCode, setEmailVerifyCode] = useState("");
@@ -158,12 +159,15 @@ export default function ProfilePage() {
         availability: user.availability !== false,
         address: user.address || "",
         email: user.email || "",
+        transportation_type: user.transportation_type || "",
       });
       setPortfolio(user.portfolio_images || []);
       fetchReferralInfo();
       fetchRatings();
       // Fetch boost status (price is included in response)
       axios.get(`${API}/boost/profile/status`).then(r => setBoostStatus(r.data)).catch(() => {});
+      // Fetch public settings for feature flags
+      axios.get(`${API}/settings/public`).then(r => setPubSettings(r.data)).catch(() => {});
     }
   }, [user, userId]);
 
@@ -229,6 +233,10 @@ export default function ProfilePage() {
         toast.error("Please enter a valid email address");
         return;
       }
+    }
+    if (user?.role === "crew" && pubSettings.enable_crew_transportation_type && !form.transportation_type) {
+      toast.error("Please select your transportation type");
+      return;
     }
     setLoading(true);
     try {
@@ -702,6 +710,24 @@ export default function ProfilePage() {
                     </div>
                   )}
 
+                  {user?.role === "crew" && pubSettings.enable_crew_transportation_type && (
+                    <div>
+                      <label className="block text-sm font-semibold text-[#050A30] dark:text-white mb-1">
+                        Transportation Type <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        value={form.transportation_type}
+                        onChange={e => setForm(f => ({ ...f, transportation_type: e.target.value }))}
+                        className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-[#0000FF] dark:bg-slate-800 dark:text-white"
+                        data-testid="profile-transportation-type-select">
+                        <option value="">Select transportation type</option>
+                        {["Car", "SUV", "Truck", "Van", "Rideshare", "Public Transit", "Other"].map(t => (
+                          <option key={t} value={t}>{t}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
                   {user?.role === "contractor" && (
                     <div className="space-y-4">
                       <div>
@@ -772,6 +798,14 @@ export default function ProfilePage() {
                           <span key={s} className="bg-blue-100 dark:bg-blue-900/50 text-[#0000FF] px-2 py-1 rounded-full text-xs font-semibold">{s}</span>
                         ))}
                       </div>
+                    </div>
+                  )}
+                  {user?.role === "crew" && pubSettings.enable_crew_transportation_type && user?.transportation_type && (
+                    <div className="flex items-center gap-3 py-2 border-b border-slate-100 dark:border-slate-800">
+                      <span className="text-sm text-slate-500 w-20 flex-shrink-0">Transport</span>
+                      <span className="text-sm font-semibold text-[#050A30] dark:text-white" data-testid="profile-transportation-display">
+                        {user.transportation_type}
+                      </span>
                     </div>
                   )}
                 </div>

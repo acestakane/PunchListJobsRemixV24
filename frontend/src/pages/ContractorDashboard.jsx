@@ -161,7 +161,7 @@ function CrewProfileModal({ userId, onClose }) {
   );
 }
 
-function CrewCard({ member, onRequest, onViewProfile, isViewerFree }) {
+function CrewCard({ member, onRequest, onViewProfile, isViewerFree, showTransportType }) {
   const shareProfile = () => {
     const url = `${window.location.origin}/profile/${member.id}`;
     navigator.clipboard.writeText(url).then(() => toast.success("Profile link copied!"));
@@ -201,6 +201,14 @@ function CrewCard({ member, onRequest, onViewProfile, isViewerFree }) {
           {member.skills.slice(0, 3).map(s => (
             <span key={s} className="text-xs bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-2 py-0.5 rounded-full">{s}</span>
           ))}
+        </div>
+      )}
+      {showTransportType && member.transportation_type && (
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-2 py-0.5 rounded-full font-semibold"
+            data-testid={`crew-transport-${member.id}`}>
+            {member.transportation_type}
+          </span>
         </div>
       )}
       <div className="grid grid-cols-3 gap-1.5">
@@ -265,6 +273,7 @@ export default function ContractorDashboard() {
   const [applicantsJob, setApplicantsJob] = useState(null); // job_id whose applicant panel is open
   const [applicantDetails, setApplicantDetails] = useState({}); // { [job_id]: [...crew] }
   const [cancelReqJob, setCancelReqJob] = useState(null); // job_id whose cancel-req panel is open
+  const [pubSettings, setPubSettings] = useState({});
 
   const fetchJobs = useCallback(async () => {
     try {
@@ -321,6 +330,7 @@ export default function ContractorDashboard() {
     };
     init();
     axios.get(`${API}/trades`).then(r => setGrouped(r.data.categories || [])).catch(() => {});
+    axios.get(`${API}/settings/public`).then(r => setPubSettings(r.data)).catch(() => {});
   }, [fetchJobs, fetchCrew, fetchSubStatus, fetchCrewRequests, fetchProfileCompletion]);
 
   useEffect(() => {
@@ -723,7 +733,7 @@ export default function ContractorDashboard() {
                           {Math.round(member.match_score * 100)}%
                         </div>
                       )}
-                      <CrewCard member={member} onRequest={requestCrew} onViewProfile={setViewingCrewId} isViewerFree={isFreeUser(user)} />
+                      <CrewCard member={member} onRequest={requestCrew} onViewProfile={setViewingCrewId} isViewerFree={isFreeUser(user)} showTransportType={!!pubSettings.enable_crew_transportation_type} />
                     </div>
                   ))}
                 </div>
