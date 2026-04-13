@@ -1,6 +1,7 @@
 import React from "react";
 import axios from "axios";
 import { toast } from "sonner";
+import { getErr } from "../../utils/errorUtils";
 import {
   Search, UserPlus, Download, Upload, Edit, Trash2, Check, X,
   Key, ChevronLeft, ChevronRight, MessageCircle
@@ -159,7 +160,7 @@ export default function UserList({
                             try {
                               const { data } = await axios.post(`${API}/messages/threads/initiate/${u.id}`);
                               navigate(`/messages?thread=${data.id}`);
-                            } catch (e) { toast.error(e?.response?.data?.detail || "Failed"); }
+                            } catch (e) { toast.error(getErr(e, "Failed")); }
                           }}
                           className="p-1.5 rounded text-blue-500 hover:bg-blue-50"
                           title="Message User" data-testid={`admin-message-user-${u.id}`}>

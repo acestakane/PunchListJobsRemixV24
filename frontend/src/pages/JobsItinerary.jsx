@@ -4,6 +4,7 @@ import { useAuth } from "../contexts/AuthContext";
 import Navbar from "../components/Navbar";
 import axios from "axios";
 import { toast } from "sonner";
+import { getErr } from "../utils/errorUtils";
 import {
   CalendarDays, Clock, DollarSign, MapPin, Building2, Briefcase,
   MessageCircle, Navigation, Calendar, Search, Ban, BellOff,
@@ -359,11 +360,11 @@ export default function JobsItinerary() {
           break;
       }
     } catch (e) {
-      const detail = e?.response?.data?.detail || "";
+      const detail = getErr(e, "Action failed");
       if (detail.includes("UPGRADE_REQUIRED")) {
         toast.error("Upgrade your plan to use messaging");
       } else {
-        toast.error(detail || `Action failed`);
+        toast.error(detail);
       }
     } finally {
       setActionLoading(null);
@@ -395,7 +396,7 @@ export default function JobsItinerary() {
       if (selectedJob.contractor_id) {
         setRatingData({ jobId: selectedJob.id, ratedId: selectedJob.contractor_id, ratedName: selectedJob.contractor_name || "Contractor" });
       }
-    } catch (e) { toast.error(e?.response?.data?.detail || "Failed to submit"); }
+    } catch (e) { toast.error(getErr(e, "Failed to submit")); }
   };
 
   const handleContractorComplete = async () => {
@@ -404,7 +405,7 @@ export default function JobsItinerary() {
       await axios.post(`${API}/jobs/${selectedJob.id}/contractor-complete`);
       toast.success("Job marked complete!");
       fetchItinerary();
-    } catch (e) { toast.error(e?.response?.data?.detail || "Failed to complete"); }
+    } catch (e) { toast.error(getErr(e, "Failed to complete")); }
   };
 
   const submitDispute = async () => {
@@ -413,7 +414,7 @@ export default function JobsItinerary() {
       await axios.post(`${API}/jobs/${disputeJobId}/dispute`, { reason: disputeReason });
       toast.success("Dispute submitted for admin review");
       setDisputeJobId(null); setDisputeReason("");
-    } catch (e) { toast.error(e?.response?.data?.detail || "Failed to submit dispute"); }
+    } catch (e) { toast.error(getErr(e, "Failed to submit dispute")); }
   };
 
   const submitRating = async (stars, review) => {
@@ -422,7 +423,7 @@ export default function JobsItinerary() {
       await axios.post(`${API}/jobs/${ratingData.jobId}/rate`, { rated_id: ratingData.ratedId, stars, review });
       toast.success("Rating submitted!");
       setRatingData(null);
-    } catch (e) { toast.error(e?.response?.data?.detail || "Failed to submit rating"); }
+    } catch (e) { toast.error(getErr(e, "Failed to submit rating")); }
   };
 
   return (

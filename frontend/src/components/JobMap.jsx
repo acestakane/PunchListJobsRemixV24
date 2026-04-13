@@ -117,6 +117,14 @@ function FlyTo({ target }) {
   return null;
 }
 
+function ZoomController({ zoomRef }) {
+  const map = useMap();
+  useEffect(() => {
+    if (zoomRef) zoomRef.current = map;
+  }, [map, zoomRef]);
+  return null;
+}
+
 function RecenterMap({ center }) {
   const map = useMap();
   useEffect(() => {
@@ -216,6 +224,7 @@ export default function JobMap({
   const [selectedState, setSelectedState] = useState("");
   const [locating, setLocating]           = useState(false);
   const [radiusMi, setRadiusMi]           = useState(null);
+  const mapRef                            = useRef(null);
   const radiusKm = radiusMi ? radiusMi * 1.609 : null;
 
   // Segmented control: "current" = GPS, "profile" = Profile Address
@@ -310,6 +319,9 @@ export default function JobMap({
   const rotateCCW = () => setBearing(b => (b - 45 + 360) % 360);
   const resetNorth = () => setBearing(0);
 
+  const zoomIn  = () => { try { mapRef.current?.zoomIn(); } catch {} };
+  const zoomOut = () => { try { mapRef.current?.zoomOut(); } catch {} };
+
   return (
     <div
       style={{ height, width: "100%" }}
@@ -329,12 +341,15 @@ export default function JobMap({
           center={defaultCenter}
           zoom={defaultZoom}
           style={{ height: "100%", width: "100%" }}
-          zoomControl={true}
+          zoomControl={false}
         >
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
+
+          {/* Wire up mapRef for programmatic zoom */}
+          <ZoomController zoomRef={mapRef} />
 
           {/* Auto-locate on mount when parent hasn't supplied a position (current mode only) */}
           {!userLocation && mapMode === "current" && <AutoLocate onLocate={onLocate} />}
@@ -558,6 +573,27 @@ export default function JobMap({
               data-testid="rotate-cw-btn"
             >
               ↻
+            </button>
+          </div>
+
+          {/* Zoom control */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-md overflow-hidden flex items-center">
+            <button
+              onClick={zoomIn}
+              title="Zoom in"
+              className="w-8 h-8 flex items-center justify-center text-lg font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors select-none"
+              data-testid="zoom-in-btn"
+            >
+              +
+            </button>
+            <div className="w-px h-4 bg-slate-200 dark:bg-slate-700" />
+            <button
+              onClick={zoomOut}
+              title="Zoom out"
+              className="w-8 h-8 flex items-center justify-center text-lg font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors select-none"
+              data-testid="zoom-out-btn"
+            >
+              −
             </button>
           </div>
         </div>

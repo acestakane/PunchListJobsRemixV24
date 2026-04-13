@@ -3,6 +3,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import { toast } from "sonner";
+import { getErr } from "../utils/errorUtils";
 import axios from "axios";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -140,7 +141,7 @@ export default function AdminDashboard() {
       toast.success("User updated");
       setEditUser(null);
       fetchUsers(userPage, userSearch);
-    } catch (e) { toast.error(e?.response?.data?.detail || "Failed to update user"); }
+    } catch (e) { toast.error(getErr(e, "Failed to update user")); }
   };
 
   const createUser = async () => {
@@ -152,7 +153,7 @@ export default function AdminDashboard() {
       setNewUser({ first_name: "", last_name: "", email: "", password: "", role: "crew" });
       setShowCreateUser(false);
       fetchUsers(userPage, userSearch);
-    } catch (e) { toast.error(e?.response?.data?.detail || "Failed to create user"); }
+    } catch (e) { toast.error(getErr(e, "Failed to create user")); }
   };
 
   const adminJobAction = async (jobId, action) => {
@@ -182,7 +183,7 @@ export default function AdminDashboard() {
       toast.success(`Import done: ${res.data.created} created, ${res.data.updated} updated`);
       if (res.data.errors?.length) toast.error(`${res.data.errors.length} row(s) had errors`);
       fetchUsers(userPage, userSearch);
-    } catch (e) { toast.error(e?.response?.data?.detail || "Import failed"); }
+    } catch (e) { toast.error(getErr(e, "Import failed")); }
     e.target.value = "";
   };
 
@@ -193,7 +194,7 @@ export default function AdminDashboard() {
       toast.success("Password reset successfully");
       setResetUserId(null);
       setNewPassword("");
-    } catch (e) { toast.error(e?.response?.data?.detail || "Failed to reset password"); }
+    } catch (e) { toast.error(getErr(e, "Failed to reset password")); }
   };
 
   // ─── Overview data derivation ─────────────────────────────────────────────

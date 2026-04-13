@@ -4,6 +4,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { useWebSocket } from "../contexts/WebSocketContext";
 import Navbar from "../components/Navbar";
 import { isFreeUser, UPGRADE_MSG } from "../utils/subscription";
+import { getErr } from "../utils/errorUtils";
 import JobCard from "../components/JobCard";
 import JobMap from "../components/JobMap";
 import JobFormModal from "../components/JobFormModal";
@@ -191,7 +192,7 @@ export default function ContractorDashboard() {
       closeJobForm();
       fetchJobs();
     } catch (e) {
-      const detail = e?.response?.data?.detail || "Failed to post job";
+      const detail = getErr(e, "Failed to post job");
       if (detail.includes("SUBSCRIPTION_EXPIRED") || detail.includes("FREE_LIMIT_REACHED")) {
         toast.error("Free plan limit reached. Upgrade to post more jobs.");
       } else {
@@ -205,7 +206,7 @@ export default function ContractorDashboard() {
       await axios.post(`${API}/jobs/${jobId}/duplicate`);
       toast.success("Job duplicated and reposted!");
       fetchJobs();
-    } catch (e) { toast.error(e?.response?.data?.detail || "Failed to duplicate"); }
+    } catch (e) { toast.error(getErr(e, "Failed to duplicate")); }
   };
 
   const startJob = async (jobId) => {
@@ -213,7 +214,7 @@ export default function ContractorDashboard() {
       await axios.post(`${API}/jobs/${jobId}/start`);
       toast.success("Job started!");
       fetchJobs();
-    } catch (e) { toast.error(e?.response?.data?.detail || "Failed"); }
+    } catch (e) { toast.error(getErr(e, "Failed")); }
   };
 
   const verifyJob = async (jobId) => {
@@ -221,7 +222,7 @@ export default function ContractorDashboard() {
       await axios.post(`${API}/jobs/${jobId}/verify`);
       toast.success("Job verified and completed!");
       fetchJobs();
-    } catch (e) { toast.error(e?.response?.data?.detail || "Failed"); }
+    } catch (e) { toast.error(getErr(e, "Failed")); }
   };
 
   const submitRatings = async (job, ratings, reviews) => {
@@ -241,7 +242,7 @@ export default function ContractorDashboard() {
       await axios.post(`${API}/jobs/${jobId}/cancel`);
       toast.success("Job cancelled. Crew has been notified.");
       fetchJobs();
-    } catch (e) { toast.error(e?.response?.data?.detail || "Failed to cancel"); }
+    } catch (e) { toast.error(getErr(e, "Failed to cancel")); }
   };
 
   const suspendJob = async (jobId) => {
@@ -249,7 +250,7 @@ export default function ContractorDashboard() {
       await axios.post(`${API}/jobs/${jobId}/suspend`);
       toast.success("Job suspended. Crew has been notified.");
       fetchJobs();
-    } catch (e) { toast.error(e?.response?.data?.detail || "Failed to suspend"); }
+    } catch (e) { toast.error(getErr(e, "Failed to suspend")); }
   };
 
   const reactivateJob = async (jobId) => {
@@ -257,7 +258,7 @@ export default function ContractorDashboard() {
       await axios.post(`${API}/jobs/${jobId}/reactivate`);
       toast.success("Job reactivated. Crew has been notified.");
       fetchJobs();
-    } catch (e) { toast.error(e?.response?.data?.detail || "Failed to reactivate"); }
+    } catch (e) { toast.error(getErr(e, "Failed to reactivate")); }
   };
 
   const deleteJobConfirmed = async () => {
@@ -267,7 +268,7 @@ export default function ContractorDashboard() {
       toast.success("Job archived — find it in Job Archive.");
       setConfirmDeleteId(null);
       fetchJobs();
-    } catch (e) { toast.error(e?.response?.data?.detail || "Failed to archive"); }
+    } catch (e) { toast.error(getErr(e, "Failed to archive")); }
   };
 
   const archiveCancelledJob = async (jobId) => {
@@ -275,7 +276,7 @@ export default function ContractorDashboard() {
       await axios.post(`${API}/jobs/${jobId}/archive`);
       toast.success("Job archived.");
       fetchJobs();
-    } catch (e) { toast.error(e?.response?.data?.detail || "Failed to archive"); }
+    } catch (e) { toast.error(getErr(e, "Failed to archive")); }
   };
 
   const copyJobToForm = (job) => {
@@ -309,7 +310,7 @@ export default function ContractorDashboard() {
     try {
       const { data } = await axios.post(`${API}/messages/threads/admin`);
       navigate(`/messages?thread=${data.id}`);
-    } catch (e) { toast.error(e?.response?.data?.detail || "Failed to open support chat"); }
+    } catch (e) { toast.error(getErr(e, "Failed to open support chat")); }
   };
 
   const messageJobCrew = async (jobId) => {
@@ -317,9 +318,9 @@ export default function ContractorDashboard() {
       const { data } = await axios.post(`${API}/messages/threads/job/${jobId}`);
       navigate(`/messages?thread=${data.id}`);
     } catch (e) {
-      const d = e?.response?.data?.detail || "";
+      const d = getErr(e, "Failed to open chat");
       if (d.includes("UPGRADE_REQUIRED")) toast.error("Upgrade your plan to message crew");
-      else toast.error(d || "Failed to open chat");
+      else toast.error(d);
     }
   };
 
@@ -335,7 +336,7 @@ export default function ContractorDashboard() {
       setRequestingCrew(null);
       setRequestMessage("");
       fetchCrewRequests();
-    } catch (e) { toast.error(e?.response?.data?.detail || "Failed to send request"); }
+    } catch (e) { toast.error(getErr(e, "Failed to send request")); }
   };
 
   const requestCrew = (member) => {
@@ -349,7 +350,7 @@ export default function ContractorDashboard() {
       await axios.post(`${API}/jobs/${jobId}/cancel-requests/${crewId}/accept`);
       toast.success("Cancel accepted — job re-listed.");
       fetchJobs(); setCancelReqJob(null);
-    } catch (e) { toast.error(e.response?.data?.detail || "Failed"); }
+    } catch (e) { toast.error(getErr(e, "Failed")); }
   };
 
   const denyCancelRequest = async (jobId, crewId) => {
@@ -357,7 +358,7 @@ export default function ContractorDashboard() {
       await axios.post(`${API}/jobs/${jobId}/cancel-requests/${crewId}/deny`);
       toast.info("Cancel request denied.");
       fetchJobs(); setCancelReqJob(null);
-    } catch (e) { toast.error(e.response?.data?.detail || "Failed"); }
+    } catch (e) { toast.error(getErr(e, "Failed")); }
   };
 
   const approveApplicant = async (jobId, crewId) => {
@@ -365,7 +366,7 @@ export default function ContractorDashboard() {
       await axios.post(`${API}/jobs/${jobId}/applicants/${crewId}/approve`);
       toast.success("Applicant approved!");
       fetchJobs(); fetchApplicants(jobId);
-    } catch (e) { toast.error(e.response?.data?.detail || "Failed to approve"); }
+    } catch (e) { toast.error(getErr(e, "Failed to approve")); }
   };
 
   const declineApplicant = async (jobId, crewId) => {
@@ -373,7 +374,7 @@ export default function ContractorDashboard() {
       await axios.post(`${API}/jobs/${jobId}/applicants/${crewId}/decline`);
       toast.info("Applicant declined.");
       fetchApplicants(jobId);
-    } catch (e) { toast.error(e.response?.data?.detail || "Failed to decline"); }
+    } catch (e) { toast.error(getErr(e, "Failed to decline")); }
   };
 
   const isExpired = subStatus?.status === "free" && subStatus?.usage_remaining === 0;

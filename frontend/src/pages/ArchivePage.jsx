@@ -3,6 +3,7 @@ import axios from "axios";
 import { useAuth } from "../contexts/AuthContext";
 import Navbar from "../components/Navbar";
 import { toast } from "sonner";
+import { getErr } from "../utils/errorUtils";
 import { Archive, RotateCcw, Trash2, Eye, X, ClipboardList, MapPin, DollarSign, Calendar } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -46,7 +47,7 @@ export default function ArchivePage() {
       const res = await axios.post(`${API}/jobs/${jobId}/unarchive`);
       toast.success(`Job restored to "${res.data.status}"`);
       fetchArchive();
-    } catch (e) { toast.error(e?.response?.data?.detail || "Failed to unarchive"); }
+    } catch (e) { toast.error(getErr(e, "Failed to unarchive")); }
   };
 
   const permanentDelete = async (jobId) => {
@@ -55,7 +56,7 @@ export default function ArchivePage() {
       toast.success("Job permanently deleted");
       setConfirmPerm(null);
       fetchArchive();
-    } catch (e) { toast.error(e?.response?.data?.detail || "Failed to delete"); }
+    } catch (e) { toast.error(getErr(e, "Failed to delete")); }
   };
 
   if (!user || !["contractor", "admin", "superadmin"].includes(user.role)) {

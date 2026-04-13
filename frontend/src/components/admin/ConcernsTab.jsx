@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { toast } from "sonner";
+import { getErr } from "../../utils/errorUtils";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -26,7 +27,7 @@ export default function ConcernsTab() {
       setResolveId(null);
       setResolveText("");
       fetchConcerns();
-    } catch (e) { toast.error(e?.response?.data?.detail || "Failed to resolve"); }
+    } catch (e) { toast.error(getErr(e, "Failed to resolve")); }
   };
 
   const filtered = concerns.filter(c => !concernFilter || c.status === concernFilter);

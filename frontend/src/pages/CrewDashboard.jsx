@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { getErr } from "../utils/errorUtils";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useWebSocket } from "../contexts/WebSocketContext";
@@ -109,7 +110,7 @@ export default function CrewDashboard() {
       const res = await axios.post(`${API}/boost/profile`);
       toast.success(`Profile boosted for 7 days! ($${res.data.amount_charged} demo charge)`);
       fetchProfileBoost();
-    } catch (e) { toast.error(e?.response?.data?.detail || "Boost failed"); }
+    } catch (e) { toast.error(getErr(e, "Boost failed")); }
     finally { setBoostLoading(false); }
   };
 
@@ -217,10 +218,10 @@ export default function CrewDashboard() {
       toast.success(selectedJob?.is_emergency ? "Emergency job accepted!" : "Application submitted! Awaiting contractor approval.");
       fetchJobs(); fetchMyJobs();
     } catch (e) {
-      const detail = e?.response?.data?.detail || "";
+      const detail = getErr(e, "Failed to accept job");
       if (detail.includes("SUBSCRIPTION_EXPIRED")) toast.error("Your subscription has expired. Please renew.");
       else if (detail.includes("already claimed")) toast.warning("Someone else got this emergency job first!");
-      else toast.error(detail || "Failed to accept job");
+      else toast.error(detail);
     }
   };
 
@@ -229,7 +230,7 @@ export default function CrewDashboard() {
       await axios.post(`${API}/jobs/${jobId}/complete`);
       toast.success("Job marked as complete. Awaiting contractor verification.");
       fetchMyJobs(); refreshUser();
-    } catch (e) { toast.error(e?.response?.data?.detail || "Failed"); }
+    } catch (e) { toast.error(getErr(e, "Failed")); }
   };
 
   const withdrawJob = async (jobId) => {
@@ -237,7 +238,7 @@ export default function CrewDashboard() {
       await axios.post(`${API}/jobs/${jobId}/withdraw`);
       toast.success("Withdrawn from job.");
       fetchMyJobs(); fetchJobs();
-    } catch (e) { toast.error(e?.response?.data?.detail || "Failed to withdraw"); }
+    } catch (e) { toast.error(getErr(e, "Failed to withdraw")); }
   };
 
   const messageContractor = async (jobId) => {
@@ -245,9 +246,9 @@ export default function CrewDashboard() {
       const { data } = await axios.post(`${API}/messages/threads/job/${jobId}`);
       navigate(`/messages?thread=${data.id}`);
     } catch (e) {
-      const detail = e?.response?.data?.detail || "";
+      const detail = getErr(e, "Failed to open chat");
       if (detail.includes("UPGRADE_REQUIRED")) toast.error("Upgrade your plan to message contractors");
-      else toast.error(detail || "Failed to open chat");
+      else toast.error(detail);
     }
   };
 
@@ -255,7 +256,7 @@ export default function CrewDashboard() {
     try {
       const { data } = await axios.post(`${API}/messages/threads/admin`);
       navigate(`/messages?thread=${data.id}`);
-    } catch (e) { toast.error(e?.response?.data?.detail || "Failed to open support chat"); }
+    } catch (e) { toast.error(getErr(e, "Failed to open support chat")); }
   };
 
   useEffect(() => {
@@ -275,7 +276,7 @@ export default function CrewDashboard() {
       toast.success(`Contact info unlocked! ($${res.data.amount || REVEAL_CONTACT_PRICE} demo charge)`);
       const updated = await axios.get(`${API}/users/public/${selectedJob.contractor_id}?job_id=${selectedJob.id}`);
       setContractorInfo(updated.data);
-    } catch (e) { toast.error(e?.response?.data?.detail || "Failed to unlock contact info"); }
+    } catch (e) { toast.error(getErr(e, "Failed to unlock contact info")); }
     finally { setRevealLoading(false); }
   };
 
@@ -294,14 +295,14 @@ export default function CrewDashboard() {
     try {
       await axios.put(`${API}/users/requests/${requestId}/accept`);
       toast.success("Request accepted!"); fetchCrewRequests();
-    } catch (e) { toast.error(e?.response?.data?.detail || "Failed to accept"); }
+    } catch (e) { toast.error(getErr(e, "Failed to accept")); }
   };
 
   const declineCrewRequest = async (requestId) => {
     try {
       await axios.put(`${API}/users/requests/${requestId}/decline`);
       toast.info("Request declined."); fetchCrewRequests();
-    } catch (e) { toast.error(e?.response?.data?.detail || "Failed to decline"); }
+    } catch (e) { toast.error(getErr(e, "Failed to decline")); }
   };
 
   // ─── Derived state ───────────────────────────────────────────────────────────

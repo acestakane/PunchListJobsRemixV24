@@ -4,6 +4,7 @@ import { useAuth } from "../contexts/AuthContext";
 import Navbar from "../components/Navbar";
 import axios from "axios";
 import { toast } from "sonner";
+import { getErr } from "../utils/errorUtils";
 import {
   AlertTriangle, ChevronLeft, User, Mail, Briefcase,
   CheckCircle, Loader2, FileText
@@ -38,7 +39,7 @@ export default function ReportConcern() {
       await axios.post(`${API}/concerns/`, form);
       setSubmitted(true);
     } catch (err) {
-      toast.error(err?.response?.data?.detail || "Failed to submit concern");
+      toast.error(getErr(err, "Failed to submit concern"));
     } finally {
       setLoading(false);
     }

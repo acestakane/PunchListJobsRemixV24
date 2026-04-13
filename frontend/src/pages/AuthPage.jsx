@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
 import { toast } from "sonner";
+import { getErr } from "../utils/errorUtils";
 import axios from "axios";
 import { Eye, EyeOff, ClipboardList, Users, ArrowLeft, CheckCircle, KeyRound, Mail } from "lucide-react";
 import TradeSelect from "../components/TradeSelect";
@@ -95,8 +96,7 @@ export default function AuthPage() {
         else navigate("/contractor/dashboard");
       }
     } catch (err) {
-      const msg = err?.response?.data?.detail || "Something went wrong. Please try again.";
-      toast.error(msg);
+      toast.error(getErr(err, "Something went wrong. Please try again."));
     } finally {
       setLoading(false);
     }
@@ -110,7 +110,7 @@ export default function AuthPage() {
       setForgotDone(res.data);
       toast.success("Reset link generated.");
     } catch (err) {
-      toast.error(err?.response?.data?.detail || "Failed to send reset link");
+      toast.error(getErr(err, "Failed to send reset link"));
     } finally { setLoading(false); }
   };
 
@@ -123,7 +123,7 @@ export default function AuthPage() {
       toast.success("Password reset! You can now log in.");
       setMode("login"); setResetToken(""); setNewPassword("");
     } catch (err) {
-      toast.error(err?.response?.data?.detail || "Invalid or expired token");
+      toast.error(getErr(err, "Invalid or expired token"));
     } finally { setLoading(false); }
   };
 

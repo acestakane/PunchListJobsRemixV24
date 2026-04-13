@@ -3,6 +3,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { useParams, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import { toast } from "sonner";
+import { getErr } from "../utils/errorUtils";
 import TradeSelect from "../components/TradeSelect";
 import axios from "axios";
 import {
@@ -254,7 +255,7 @@ export default function ProfilePage() {
       setEditing(false);
       toast.success("Profile updated!");
     } catch (e) {
-      toast.error(e?.response?.data?.detail || "Failed to update");
+      toast.error(getErr(e, "Failed to update"));
     } finally {
       setLoading(false);
     }
@@ -270,7 +271,7 @@ export default function ProfilePage() {
       setEmailVerifyCode("");
       await refreshUser();
     } catch (e) {
-      toast.error(e?.response?.data?.detail || "Verification failed");
+      toast.error(getErr(e, "Verification failed"));
     } finally {
       setVerifyingEmail(false);
     }
@@ -311,7 +312,7 @@ export default function ProfilePage() {
       updateUser({ portfolio_images: [...portfolio, res.data.url] });
       toast.success("Image added!");
     } catch (err) {
-      toast.error(err?.response?.data?.detail || "Upload failed");
+      toast.error(getErr(err, "Upload failed"));
     } finally {
       setUploadingPortfolio(false);
       e.target.value = "";
@@ -339,7 +340,7 @@ export default function ProfilePage() {
       setBoostStatus(res.data);
       toast.success(`Profile Boost activated for 7 days! ($${price.toFixed(2)})`);
     } catch (e) {
-      toast.error(e?.response?.data?.detail || "Failed to activate boost");
+      toast.error(getErr(e, "Failed to activate boost"));
     }
   };
 

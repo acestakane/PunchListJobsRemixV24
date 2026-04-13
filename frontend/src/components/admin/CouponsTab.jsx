@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { toast } from "sonner";
+import { getErr } from "../../utils/errorUtils";
 import { Edit, Check, X, Trash2 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -33,7 +34,7 @@ export default function CouponsTab() {
       toast.success("Coupon created");
       setCouponForm({ code: "", type: "percent", value: "", max_uses: "", expires_at: "", plan_restriction: "" });
       fetchCoupons();
-    } catch (e) { toast.error(e?.response?.data?.detail || "Failed to create coupon"); }
+    } catch (e) { toast.error(getErr(e, "Failed to create coupon")); }
   };
 
   const openEditCoupon = (c) => {
@@ -54,7 +55,7 @@ export default function CouponsTab() {
       setEditCouponId(null);
       setEditCouponForm({});
       fetchCoupons();
-    } catch (e) { toast.error(e?.response?.data?.detail || "Failed to update coupon"); }
+    } catch (e) { toast.error(getErr(e, "Failed to update coupon")); }
   };
 
   const toggleCoupon = async (id) => {

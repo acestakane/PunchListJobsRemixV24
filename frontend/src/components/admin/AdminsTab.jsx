@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { toast } from "sonner";
+import { getErr } from "../../utils/errorUtils";
 import { PlusCircle, Check, X, Trash2 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -27,7 +28,7 @@ export default function AdminsTab({ isSuperAdmin }) {
       setNewAdmin({ first_name: "", last_name: "", email: "", password: "" });
       setShowCreate(false);
       fetchAdmins();
-    } catch (e) { toast.error(e?.response?.data?.detail || "Failed to create admin"); }
+    } catch (e) { toast.error(getErr(e, "Failed to create admin")); }
   };
 
   const suspendAdmin = async (adminId, isActive) => {

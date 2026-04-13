@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { toast } from "sonner";
+import { getErr } from "../../utils/errorUtils";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -53,14 +54,14 @@ export default function TradesTab() {
               <>
                 <button onClick={async () => {
                   if (!editCat.name.trim()) return;
-                  try { await axios.put(`${API}/trades/admin/categories/${editCat.id}`, { name: editCat.name }); toast.success("Category updated"); setEditCat(null); fetchTradeCategories(); } catch (e) { toast.error(e?.response?.data?.detail || "Failed"); }
+                  try { await axios.put(`${API}/trades/admin/categories/${editCat.id}`, { name: editCat.name }); toast.success("Category updated"); setEditCat(null); fetchTradeCategories(); } catch (e) { toast.error(getErr(e, "Failed")); }
                 }} className="px-3 py-1.5 bg-green-500 text-white rounded-lg text-xs font-bold" data-testid="save-cat-btn">Save</button>
                 <button onClick={() => setEditCat(null)} className="px-3 py-1.5 border border-slate-200 dark:border-slate-600 text-slate-500 rounded-lg text-xs" data-testid="cancel-cat-btn">×</button>
               </>
             ) : (
               <button onClick={async () => {
                 if (!catForm.name.trim()) return;
-                try { await axios.post(`${API}/trades/admin/categories`, { name: catForm.name }); toast.success("Category created"); setCatForm({ name: "" }); fetchTradeCategories(); } catch (e) { toast.error(e?.response?.data?.detail || "Failed"); }
+                try { await axios.post(`${API}/trades/admin/categories`, { name: catForm.name }); toast.success("Category created"); setCatForm({ name: "" }); fetchTradeCategories(); } catch (e) { toast.error(getErr(e, "Failed")); }
               }} className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold" data-testid="add-cat-btn">+ Add</button>
             )}
           </div>
@@ -78,11 +79,11 @@ export default function TradesTab() {
                 <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
                   <button onClick={() => setEditCat({ id: cat.id, name: cat.name })} className="text-xs px-2 py-1 rounded text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20" data-testid={`edit-cat-${cat.id}`}>Edit</button>
                   <button onClick={async () => {
-                    try { await axios.post(`${API}/trades/admin/categories/${cat.id}/${cat.is_active ? "suspend" : "activate"}`); fetchTradeCategories(); } catch (e) { toast.error(e?.response?.data?.detail || "Failed"); }
+                    try { await axios.post(`${API}/trades/admin/categories/${cat.id}/${cat.is_active ? "suspend" : "activate"}`); fetchTradeCategories(); } catch (e) { toast.error(getErr(e, "Failed")); }
                   }} className={`text-xs px-2 py-1 rounded ${cat.is_active ? "text-amber-500 hover:bg-amber-50" : "text-green-500 hover:bg-green-50"}`} data-testid={`toggle-cat-${cat.id}`}>{cat.is_active ? "Suspend" : "Activate"}</button>
                   <button onClick={async () => {
                     if (!window.confirm("Delete category? All trades must be removed first.")) return;
-                    try { await axios.delete(`${API}/trades/admin/categories/${cat.id}`); toast.success("Deleted"); if (selectedCatId === cat.id) setSelectedCatId(null); fetchTradeCategories(); } catch (e) { toast.error(e?.response?.data?.detail || "Failed"); }
+                    try { await axios.delete(`${API}/trades/admin/categories/${cat.id}`); toast.success("Deleted"); if (selectedCatId === cat.id) setSelectedCatId(null); fetchTradeCategories(); } catch (e) { toast.error(getErr(e, "Failed")); }
                   }} className="text-xs px-2 py-1 rounded text-red-400 hover:bg-red-50" data-testid={`delete-cat-${cat.id}`}>Del</button>
                 </div>
               </div>
@@ -110,14 +111,14 @@ export default function TradesTab() {
                 <>
                   <button onClick={async () => {
                     if (!editTrade.name.trim()) return;
-                    try { await axios.put(`${API}/trades/admin/trades/${editTrade.id}`, { name: editTrade.name }); toast.success("Trade updated"); setEditTrade(null); fetchTrades(selectedCatId); } catch (e) { toast.error(e?.response?.data?.detail || "Failed"); }
+                    try { await axios.put(`${API}/trades/admin/trades/${editTrade.id}`, { name: editTrade.name }); toast.success("Trade updated"); setEditTrade(null); fetchTrades(selectedCatId); } catch (e) { toast.error(getErr(e, "Failed")); }
                   }} className="px-3 py-1.5 bg-green-500 text-white rounded-lg text-xs font-bold" data-testid="save-trade-btn">Save</button>
                   <button onClick={() => setEditTrade(null)} className="px-3 py-1.5 border border-slate-200 dark:border-slate-600 text-slate-500 rounded-lg text-xs" data-testid="cancel-trade-btn">×</button>
                 </>
               ) : (
                 <button onClick={async () => {
                   if (!tradeForm.name.trim() || !selectedCatId) return;
-                  try { await axios.post(`${API}/trades/admin/trades`, { name: tradeForm.name, category_id: selectedCatId }); toast.success("Trade created"); setTradeForm(f => ({ ...f, name: "" })); fetchTrades(selectedCatId); } catch (e) { toast.error(e?.response?.data?.detail || "Failed"); }
+                  try { await axios.post(`${API}/trades/admin/trades`, { name: tradeForm.name, category_id: selectedCatId }); toast.success("Trade created"); setTradeForm(f => ({ ...f, name: "" })); fetchTrades(selectedCatId); } catch (e) { toast.error(getErr(e, "Failed")); }
                 }} className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold" data-testid="add-trade-btn">+ Add</button>
               )}
             </div>
@@ -135,11 +136,11 @@ export default function TradesTab() {
                   <div className="flex items-center gap-1">
                     <button onClick={() => setEditTrade({ id: trade.id, name: trade.name })} className="text-xs px-2 py-1 rounded text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20" data-testid={`edit-trade-${trade.id}`}>Edit</button>
                     <button onClick={async () => {
-                      try { await axios.post(`${API}/trades/admin/trades/${trade.id}/${trade.is_active ? "suspend" : "activate"}`); fetchTrades(selectedCatId); } catch (e) { toast.error(e?.response?.data?.detail || "Failed"); }
+                      try { await axios.post(`${API}/trades/admin/trades/${trade.id}/${trade.is_active ? "suspend" : "activate"}`); fetchTrades(selectedCatId); } catch (e) { toast.error(getErr(e, "Failed")); }
                     }} className={`text-xs px-2 py-1 rounded ${trade.is_active ? "text-amber-500 hover:bg-amber-50" : "text-green-500 hover:bg-green-50"}`} data-testid={`toggle-trade-${trade.id}`}>{trade.is_active ? "Suspend" : "Activate"}</button>
                     <button onClick={async () => {
                       if (!window.confirm("Delete this trade?")) return;
-                      try { await axios.delete(`${API}/trades/admin/trades/${trade.id}`); toast.success("Deleted"); fetchTrades(selectedCatId); } catch (e) { toast.error(e?.response?.data?.detail || "Failed"); }
+                      try { await axios.delete(`${API}/trades/admin/trades/${trade.id}`); toast.success("Deleted"); fetchTrades(selectedCatId); } catch (e) { toast.error(getErr(e, "Failed")); }
                     }} className="text-xs px-2 py-1 rounded text-red-400 hover:bg-red-50" data-testid={`delete-trade-${trade.id}`}>Del</button>
                   </div>
                 </div>

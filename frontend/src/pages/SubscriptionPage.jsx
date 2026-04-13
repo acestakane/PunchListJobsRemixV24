@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { toast } from "sonner";
+import { getErr } from "../utils/errorUtils";
 import axios from "axios";
 import {
   CreditCard, Check, Zap, Clock, Calendar, Star, Shield, ChevronLeft, Loader2, X,
@@ -57,7 +58,7 @@ export default function SubscriptionPage() {
       setSelectedPlan(null);
       fetchData();
     } catch (err) {
-      toast.error(err.response?.data?.detail || "Payment failed");
+      toast.error(getErr(err, "Payment failed"));
     }
     setPaying(false);
   };
@@ -71,7 +72,7 @@ export default function SubscriptionPage() {
       setShowPayment(false);
       fetchData();
     } catch (err) {
-      toast.error(err.response?.data?.detail || "CashApp payment failed");
+      toast.error(getErr(err, "CashApp payment failed"));
     }
     setPaying(false);
   };
@@ -109,7 +110,7 @@ export default function SubscriptionPage() {
             setSelectedPlan(null);
             fetchData();
           } catch (err) {
-            toast.error(err.response?.data?.detail || "PayPal payment failed");
+            toast.error(getErr(err, "PayPal payment failed"));
           }
           setPaying(false);
         },
@@ -136,7 +137,7 @@ export default function SubscriptionPage() {
       toast.success(res.data.message);
       fetchData();
     } catch (err) {
-      toast.error(err.response?.data?.detail || "Redemption failed");
+      toast.error(getErr(err, "Redemption failed"));
     }
     setPaying(false);
   };
