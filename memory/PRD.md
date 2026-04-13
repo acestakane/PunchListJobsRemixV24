@@ -76,7 +76,8 @@ Imported from: https://github.com/acestakane/PunchListJobsRemixV20.git
 - Shared: ProfileCompletionPopup to `components/` (used by both dashboards)
 - JobFormModal.jsx updated: now includes PunchList Tasks, Job Images (max 4), required Description, normalizeTrade, and address autocomplete (fully self-contained)
 
-## Code Quality Improvements (2026-04-12)
+## Backend Logic Fix (2026-04-12)
+- `approve_applicant` in `job_routes.py`: added approval guard (denies immediately if `crew_accepted >= crew_needed`) + auto-deny logic (when approval fills the quota, all remaining `crew_pending` are auto-denied with notifications)
 - Fixed missing React hook dependencies: `fetchMe` wrapped in `useCallback([logout])` in AuthContext; `useEffect` deps updated to `[token, fetchMe]`
 - Fixed `MessagesPage.jsx` initial load `useEffect` stale closure: uses `initialThreadRef` + proper deps `[fetchThreads, openThread]`
 - Fixed `WebSocketContext.jsx` empty catch block: added `console.error`

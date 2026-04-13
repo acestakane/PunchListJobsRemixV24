@@ -854,9 +854,29 @@ async def approve_applicant(job_id: str, crew_id: str, current_user: dict = Depe
     if crew_id not in job.get("crew_pending", []):
         raise HTTPException(status_code=400, detail="Crew member is not in pending list")
 
+    # APPROVAL GUARD: deny immediately if already at capacity
+    approved_count = len(job.get("crew_accepted", []))
+    if approved_count >= job["crew_needed"]:
+        new_pending = [c for c in job.get("crew_pending", []) if c != crew_id]
+        await db.jobs.update_one({"id": job_id}, {"$set": {"crew_pending": new_pending}})
+        await create_notification(crew_id, "application_declined", "Application Not Selected",
+            f"Your application for '{job['title']}' was not selected. Keep applying!")
+        try:
+            from routes.ws_routes import manager
+            await manager.send_to_user(crew_id, {"type": "application_declined", "job_title": job["title"]})
+        except Exception:
+            pass
+        return {"message": "Crew limit reached — applicant denied", "status": job.get("status")}
+
     new_pending  = [c for c in job["crew_pending"] if c != crew_id]
     new_accepted = job.get("crew_accepted", []) + [crew_id]
     new_status   = "fulfilled" if len(new_accepted) >= job["crew_needed"] else "open"
+
+    # AUTO-DENY: when this approval fills the quota, deny all remaining pending
+    auto_denied_ids = []
+    if len(new_accepted) >= job["crew_needed"]:
+        auto_denied_ids = list(new_pending)
+        new_pending = []
 
     await db.jobs.update_one({"id": job_id}, {"$set": {
         "crew_pending": new_pending, "crew_accepted": new_accepted, "status": new_status
@@ -875,7 +895,18 @@ async def approve_applicant(job_id: str, crew_id: str, current_user: dict = Depe
         })
     except Exception:
         pass
-    return {"message": "Applicant approved", "status": new_status}
+
+    # Notify each auto-denied applicant
+    for denied_id in auto_denied_ids:
+        await create_notification(denied_id, "application_declined", "Application Not Selected",
+            f"Your application for '{job['title']}' was not selected. Keep applying!")
+        try:
+            from routes.ws_routes import manager
+            await manager.send_to_user(denied_id, {"type": "application_declined", "job_title": job["title"]})
+        except Exception:
+            pass
+
+    return {"message": "Applicant approved", "status": new_status, "auto_denied": len(auto_denied_ids)}
 
 
 @router.post("/{job_id}/applicants/{crew_id}/decline")
