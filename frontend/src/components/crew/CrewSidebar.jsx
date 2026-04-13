@@ -14,7 +14,7 @@ export function CrewSidebar({
   crewRequests, pendingIds, acceptedIds,
   onBoost, onWithdraw, onMessageAdmin, onAcceptRequest, onDeclineRequest, onSelectJob,
 }) {
-  const activeJobs = myJobs.filter(j => ["in_progress", "fulfilled", "open", "suspended"].includes(j.status));
+  const activeJobs = myJobs.filter(j => j.my_status === "accepted");
   const pendingJobs = myJobs.filter(j => j.my_status === "pending");
   const pendingRequests = crewRequests.filter(r => r.status === "pending");
 

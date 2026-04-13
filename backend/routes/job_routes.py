@@ -91,11 +91,11 @@ async def list_jobs(
         # Contractors only see their own jobs
         query["contractor_id"] = current_user["id"]
     else:
-        # Crew sees all open/fulfilled jobs
+        # Crew sees only open jobs (fulfilled = fully staffed, belongs in Itinerary)
         if status:
             query["status"] = status
         else:
-            query["status"] = {"$in": ["open", "fulfilled"]}
+            query["status"] = "open"
 
     if trade:
         query["trade"] = trade

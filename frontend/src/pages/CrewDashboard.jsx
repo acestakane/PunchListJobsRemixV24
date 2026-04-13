@@ -305,12 +305,18 @@ export default function CrewDashboard() {
   };
 
   // ─── Derived state ───────────────────────────────────────────────────────────
-  const acceptedIds = myJobs.filter(j => j.my_status !== "pending").map(j => j.id);
+  const acceptedIds = myJobs.filter(j => j.my_status === "accepted").map(j => j.id);
   const pendingIds  = myJobs.filter(j => j.my_status === "pending").map(j => j.id);
+
   const isExpired = subStatus?.status === "expired";
+  // Exclude fully-staffed (fulfilled) jobs — those belong in the Itinerary
   const mapJobs = [
     ...jobs,
-    ...myJobs.filter(j => j.my_status === "pending" && !jobs.some(jb => jb.id === j.id)),
+    ...myJobs.filter(j =>
+      j.my_status === "pending" &&
+      j.status === "open" &&
+      !jobs.some(jb => jb.id === j.id)
+    ),
   ];
 
   return (
