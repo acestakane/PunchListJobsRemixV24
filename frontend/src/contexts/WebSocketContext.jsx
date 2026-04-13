@@ -96,7 +96,7 @@ export function WebSocketProvider({ children }) {
             });
           }
         }
-      } catch { }
+      } catch (e) { console.error("WS message parse error", e); }
     };
 
     ws.current.onclose = () => {

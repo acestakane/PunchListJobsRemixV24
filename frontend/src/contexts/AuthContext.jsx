@@ -10,16 +10,15 @@ export function AuthProvider({ children }) {
   const [token, setToken] = useState(() => localStorage.getItem("punchlist_token"));
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (token) {
-      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-      fetchMe();
-    } else {
-      setLoading(false);
-    }
-  }, [token]);
+  // logout declared first so fetchMe can depend on it
+  const logout = useCallback(() => {
+    localStorage.removeItem("punchlist_token");
+    delete axios.defaults.headers.common["Authorization"];
+    setToken(null);
+    setUser(null);
+  }, []);
 
-  const fetchMe = async () => {
+  const fetchMe = useCallback(async () => {
     try {
       const res = await axios.get(`${API}/users/me`);
       setUser(res.data);
@@ -28,7 +27,16 @@ export function AuthProvider({ children }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [logout]);
+
+  useEffect(() => {
+    if (token) {
+      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+      fetchMe();
+    } else {
+      setLoading(false);
+    }
+  }, [token, fetchMe]);
 
   const login = useCallback(async (email, password, captcha_token) => {
     const res = await axios.post(`${API}/auth/login`, { email, password, captcha_token });
@@ -48,13 +56,6 @@ export function AuthProvider({ children }) {
     setToken(access_token);
     setUser(userData);
     return userData;
-  }, []);
-
-  const logout = useCallback(() => {
-    localStorage.removeItem("punchlist_token");
-    delete axios.defaults.headers.common["Authorization"];
-    setToken(null);
-    setUser(null);
   }, []);
 
   const refreshUser = useCallback(async () => {

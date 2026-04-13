@@ -17,7 +17,7 @@ export default function TradesTab() {
     try {
       const res = await axios.get(`${API}/trades/admin/categories`);
       setTradeCategories(res.data.categories || []);
-    } catch {}
+    } catch (e) { console.error("fetchTradeCategories failed", e); }
   };
 
   const fetchTrades = async (catId = null) => {
@@ -25,7 +25,7 @@ export default function TradesTab() {
     try {
       const res = await axios.get(url);
       setTrades(res.data.trades || []);
-    } catch {}
+    } catch (e) { console.error("fetchTrades failed", e); }
   };
 
   useEffect(() => {

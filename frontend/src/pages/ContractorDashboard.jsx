@@ -97,7 +97,7 @@ function CrewProfileModal({ userId, onClose }) {
             )}
           </div>
           <h2 className="font-extrabold text-[#050A30] dark:text-white text-xl" style={{ fontFamily: "Manrope, sans-serif" }}>{profile.name}</h2>
-          <p className="text-slate-500 text-sm capitalize">{profile.trade || "General Labor"}</p>
+          <p className="text-slate-500 text-sm capitalize">{(profile.trade?.startsWith("__cat__:") ? profile.trade.replace("__cat__:", "") : profile.trade) || "General Labor"}</p>
           <div className="flex items-center justify-center gap-1 mt-1">
             {[1,2,3,4,5].map(s => <Star key={s} className={`w-3.5 h-3.5 ${s <= Math.round(profile.rating || 0) ? "text-amber-400 fill-current" : "text-slate-300"}`} />)}
             <span className="text-xs text-slate-400 ml-1">({profile.rating_count || 0})</span>
@@ -183,7 +183,7 @@ function CrewCard({ member, onRequest, onViewProfile, isViewerFree, showTranspor
             <p className="text-sm font-bold text-[#050A30] dark:text-white truncate">{member.name}</p>
             {member.is_online && <span className="w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0" title="Online" />}
           </div>
-          <p className="text-xs text-slate-500 capitalize">{member.trade || "General Labor"}</p>
+          <p className="text-xs text-slate-500 capitalize">{(member.trade?.startsWith("__cat__:") ? member.trade.replace("__cat__:", "") : member.trade) || "General Labor"}</p>
           <div className="flex items-center gap-1 mt-0.5">
             <Star className="w-3 h-3 text-amber-400 fill-current" />
             <span className="text-xs text-slate-600 dark:text-slate-400">
@@ -306,14 +306,14 @@ export default function ContractorDashboard() {
     try {
       const res = await axios.get(`${API}/payments/subscription/status`);
       setSubStatus(res.data);
-    } catch { }
+    } catch (e) { console.error("fetchSubStatus failed", e); }
   }, []);
 
   const fetchCrewRequests = useCallback(async () => {
     try {
       const res = await axios.get(`${API}/users/requests`);
       setCrewRequests(res.data);
-    } catch { }
+    } catch (e) { console.error("fetchCrewRequests failed", e); }
   }, []);
 
   const fetchProfileCompletion = useCallback(async () => {
@@ -321,7 +321,7 @@ export default function ContractorDashboard() {
       const res = await axios.get(`${API}/users/profile-completion`);
       setProfileCompletion(res.data);
       if (!res.data.is_complete) setShowCompleteProfilePopup(true);
-    } catch { }
+    } catch (e) { console.error("fetchProfileCompletion failed", e); }
   }, []);
 
   useEffect(() => {
@@ -372,10 +372,18 @@ export default function ContractorDashboard() {
     return remove;
   }, [addListener, fetchJobs, fetchCrewRequests, pushAlert]);
 
+  const normalizeTrade = (trade) =>
+    trade?.startsWith("__cat__:") ? trade.replace("__cat__:", "") : trade;
+
   const createJob = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post(`${API}/jobs/`, { ...jobForm, crew_needed: Number(jobForm.crew_needed), pay_rate: Number(jobForm.pay_rate) });
+      const res = await axios.post(`${API}/jobs/`, {
+        ...jobForm,
+        trade: normalizeTrade(jobForm.trade),
+        crew_needed: Number(jobForm.crew_needed),
+        pay_rate: Number(jobForm.pay_rate),
+      });
       // Upload images if any were selected
       if (jobImages.length > 0) {
         try {
@@ -1027,7 +1035,7 @@ export default function ContractorDashboard() {
                 {jobForm.tasks.length > 0 && (
                   <ul className="space-y-1" data-testid="task-list">
                     {jobForm.tasks.map((t, i) => (
-                      <li key={i} className="flex items-center justify-between bg-slate-50 dark:bg-slate-800 rounded px-3 py-1.5 text-sm text-slate-700 dark:text-slate-300">
+                      <li key={`task-${i}-${t}`} className="flex items-center justify-between bg-slate-50 dark:bg-slate-800 rounded px-3 py-1.5 text-sm text-slate-700 dark:text-slate-300">
                         <span>{t}</span>
                         <button type="button" onClick={() => updateForm("tasks", jobForm.tasks.filter((_, j) => j !== i))}
                           className="text-slate-400 hover:text-red-500 ml-2 transition-colors" data-testid={`remove-task-${i}`}>✕</button>
@@ -1121,7 +1129,7 @@ export default function ContractorDashboard() {
               </div>
 
               <div className="flex gap-2 pt-1">
-                <button type="button" onClick={() => setPreviewData({ ...jobForm, contractor_name: user?.company_name || user?.name, status: "open", crew_accepted: [], location: { city: jobForm.address?.split(",")[1]?.trim() || jobForm.address } })}
+                <button type="button" onClick={() => setPreviewData({ ...jobForm, trade: normalizeTrade(jobForm.trade), contractor_name: user?.company_name || user?.name, status: "open", crew_accepted: [], location: { city: jobForm.address?.split(",")[1]?.trim() || jobForm.address } })}
                   className="flex-1 flex items-center justify-center gap-1.5 border-2 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 py-3 rounded-xl font-bold text-sm hover:border-slate-300 transition-colors"
                   data-testid="preview-form-btn">
                   <Eye className="w-4 h-4" /> Preview

@@ -55,6 +55,8 @@ export default function JobCard({ job, onAccept, onStart, onComplete, onVerify, 
   const isAdmin = ["admin", "superadmin"].includes(currentUser?.role);
   const crewCount = job.crew_accepted?.length || 0;
   const isFull = crewCount >= job.crew_needed;
+  // Strip internal __cat__: prefix so categories render cleanly
+  const tradeDisplay = job.trade?.startsWith("__cat__:") ? job.trade.replace("__cat__:", "") : job.trade;
 
   return (
     <div
@@ -104,8 +106,8 @@ export default function JobCard({ job, onAccept, onStart, onComplete, onVerify, 
           <span className="text-xs sm:text-sm whitespace-nowrap">{crewCount}/{job.crew_needed} crew</span>
         </div>
         <div className="flex items-center gap-1.5 min-w-0">
-          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full capitalize truncate ${TRADE_COLORS[job.trade?.toLowerCase()] || "bg-gray-100 text-gray-700"}`}>
-            {job.trade}
+          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full capitalize truncate ${TRADE_COLORS[tradeDisplay?.toLowerCase()] || "bg-gray-100 text-gray-700"}`}>
+            {tradeDisplay}
           </span>
         </div>
       </div>

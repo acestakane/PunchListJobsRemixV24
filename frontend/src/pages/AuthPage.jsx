@@ -387,7 +387,7 @@ export default function AuthPage() {
                     {showAddrSugg && addrSuggestions.length > 0 && (
                       <div className="absolute top-full left-0 right-0 z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl mt-1 overflow-hidden">
                         {addrSuggestions.map((s, i) => (
-                          <button key={i} type="button"
+                          <button key={s.full_address || s || i} type="button"
                             className="w-full text-left px-3 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 border-b border-slate-100 dark:border-slate-800 last:border-0"
                             onMouseDown={() => { update("address", s.full_address || s); setShowAddrSugg(false); setAddrSuggestions([]); }}>
                             <span className="font-semibold text-slate-800 dark:text-white text-xs">{s.full_address || s}</span>

@@ -56,7 +56,7 @@ function SocialShareButtons({ userId, userName }) {
     if (navigator.share) {
       try {
         await navigator.share({ title: `${userName} — PunchListJobs`, text: shareText, url: profileUrl });
-      } catch { }
+      } catch (e) { console.warn("navigator.share cancelled or failed", e); }
     } else {
       navigator.clipboard.writeText(profileUrl);
       setCopied(true);
@@ -217,14 +217,14 @@ export default function ProfilePage() {
         const ratingRes = await axios.get(`${API}/jobs/${completedJobs[0].id}/ratings`);
         setRatings(ratingRes.data.filter(r => r.rated_id === user?.id) || []);
       }
-    } catch { }
+    } catch (e) { console.error("fetchRatings failed", e); }
   };
 
   const fetchReferralInfo = async () => {
     try {
       const res = await axios.get(`${API}/users/referral/info`);
       setReferralInfo(res.data);
-    } catch { }
+    } catch (e) { console.error("fetchReferralInfo failed", e); }
   };
 
   const saveProfile = async () => {
@@ -772,7 +772,7 @@ export default function ProfilePage() {
                   {[
                     { icon: User, label: "Name", value: user?.name },
                     { icon: Phone, label: "Phone", value: user?.phone ? formatPhone(user.phone) : "Not set", href: user?.phone ? `tel:${user.phone.replace(/\D/g, "")}` : null },
-                    { icon: ClipboardList, label: user?.role === "contractor" ? "Company" : "Trade", value: (user?.role === "contractor" ? user?.company_name : user?.trade) || "Not set" },
+                    { icon: ClipboardList, label: user?.role === "contractor" ? "Company" : "Trade", value: (user?.role === "contractor" ? user?.company_name : (user?.trade?.startsWith("__cat__:") ? user?.trade.replace("__cat__:", "") : user?.trade)) || "Not set" },
                     { icon: MapPin, label: "Location", value: user?.location?.city ? [user.location.city, user.location.state].filter(Boolean).join(", ") : displayAddress },
                   ].map(item => (
                     <div key={item.label} className="flex items-center gap-3 py-2 border-b border-slate-100 dark:border-slate-800">

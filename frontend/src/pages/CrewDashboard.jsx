@@ -68,14 +68,14 @@ export default function CrewDashboard() {
     try {
       const res = await axios.get(`${API}/jobs/my-jobs`);
       setMyJobs(res.data);
-    } catch { }
+    } catch (e) { console.error("fetchMyJobs failed", e); }
   }, []);
 
   const fetchSubStatus = useCallback(async () => {
     try {
       const res = await axios.get(`${API}/payments/subscription/status`);
       setSubStatus(res.data);
-    } catch { }
+    } catch (e) { console.error("fetchSubStatus failed", e); }
   }, []);
 
   const fetchProfileCompletion = useCallback(async () => {
@@ -83,21 +83,21 @@ export default function CrewDashboard() {
       const res = await axios.get(`${API}/users/profile-completion`);
       setProfileCompletion(res.data);
       if (!res.data.is_complete) setShowCompleteProfilePopup(true);
-    } catch { }
+    } catch (e) { console.error("fetchProfileCompletion failed", e); }
   }, []);
 
   const fetchCrewRequests = useCallback(async () => {
     try {
       const res = await axios.get(`${API}/users/requests`);
       setCrewRequests(res.data);
-    } catch { }
+    } catch (e) { console.error("fetchCrewRequests failed", e); }
   }, []);
 
   const fetchProfileBoost = useCallback(async () => {
     try {
       const res = await axios.get(`${API}/boost/profile/status`);
       setProfileBoost(res.data);
-    } catch { }
+    } catch (e) { console.error("fetchProfileBoost failed", e); }
   }, []);
 
   const activateProfileBoost = async () => {

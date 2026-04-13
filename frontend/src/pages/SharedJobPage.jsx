@@ -188,7 +188,7 @@ export default function SharedJobPage() {
             </div>
             <div className="flex items-center gap-2">
               <span className="text-xs font-semibold px-2 py-1 rounded-full capitalize bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
-                {job.trade}
+                {job.trade?.startsWith("__cat__:") ? job.trade.replace("__cat__:", "") : job.trade}
               </span>
             </div>
           </div>

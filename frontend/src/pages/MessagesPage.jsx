@@ -134,15 +134,17 @@ export default function MessagesPage() {
     } catch { toast.error("Failed to load messages"); }
   }, [setSearchParams, setUnreadMessages]);
 
+  // Capture initial thread from URL on mount only
+  const initialThreadRef = useRef(searchParams.get("thread"));
+
   // Initial load
   useEffect(() => {
     setLoading(true);
-    fetchThreads().then(tList => {
+    fetchThreads().then(() => {
       setLoading(false);
-      const tid = searchParams.get("thread");
-      if (tid) openThread(tid);
+      if (initialThreadRef.current) openThread(initialThreadRef.current);
     });
-  }, []);
+  }, [fetchThreads, openThread]);
 
   // WS: real-time new messages
   useEffect(() => {

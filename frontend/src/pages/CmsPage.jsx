@@ -41,7 +41,7 @@ export default function CmsPage() {
 
   let faqItems = null;
   if (slug === "faqs") {
-    try { faqItems = JSON.parse(page.content); } catch { }
+    try { faqItems = JSON.parse(page.content); } catch (e) { console.warn("FAQ content parse error", e); }
   }
 
   const youtubeId = page.youtube_url ? getYoutubeId(page.youtube_url) : null;
