@@ -2,17 +2,18 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import axios from "axios";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+const TOKEN_KEY = "punchlist_token";
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(() => localStorage.getItem("punchlist_token"));
+  const [token, setToken] = useState(() => sessionStorage.getItem(TOKEN_KEY));
   const [loading, setLoading] = useState(true);
 
   // logout declared first so fetchMe can depend on it
   const logout = useCallback(() => {
-    localStorage.removeItem("punchlist_token");
+    sessionStorage.removeItem(TOKEN_KEY);
     delete axios.defaults.headers.common["Authorization"];
     setToken(null);
     setUser(null);
@@ -41,7 +42,7 @@ export function AuthProvider({ children }) {
   const login = useCallback(async (email, password, captcha_token) => {
     const res = await axios.post(`${API}/auth/login`, { email, password, captcha_token });
     const { access_token, user: userData } = res.data;
-    localStorage.setItem("punchlist_token", access_token);
+    sessionStorage.setItem(TOKEN_KEY, access_token);
     axios.defaults.headers.common["Authorization"] = `Bearer ${access_token}`;
     setToken(access_token);
     setUser(userData);
@@ -51,7 +52,7 @@ export function AuthProvider({ children }) {
   const register = useCallback(async (formData) => {
     const res = await axios.post(`${API}/auth/register`, formData);
     const { access_token, user: userData } = res.data;
-    localStorage.setItem("punchlist_token", access_token);
+    sessionStorage.setItem(TOKEN_KEY, access_token);
     axios.defaults.headers.common["Authorization"] = `Bearer ${access_token}`;
     setToken(access_token);
     setUser(userData);

@@ -24,6 +24,7 @@ import ReportConcern from "./pages/ReportConcern";
 import ResolveIssue from "./pages/ResolveIssue";
 import SharedJobPage from "./pages/SharedJobPage";
 import OnboardingModal from "./components/OnboardingModal";
+import PWAInstallBanner from "./components/PWAInstallBanner";
 
 const ONBOARDING_KEY = "punchlistjobs_onboarding_done";
 
@@ -78,34 +79,38 @@ function DashboardRedirect() {
 function AppRoutes() {
   const { user } = useAuth();
   return (
-    <Routes>
-      <Route path="/" element={user ? <DashboardRedirect /> : <LandingPage />} />
-      <Route path="/auth" element={user ? <DashboardRedirect /> : <AuthPage />} />
-      <Route path="/crew/dashboard" element={
-        <ProtectedRoute roles={["crew"]}><OnboardingGate><CrewDashboard /></OnboardingGate></ProtectedRoute>
-      } />
-      <Route path="/contractor/dashboard" element={
-        <ProtectedRoute roles={["contractor"]}><OnboardingGate><ContractorDashboard /></OnboardingGate></ProtectedRoute>
-      } />
-      <Route path="/admin/dashboard" element={
-        <ProtectedRoute roles={["admin","superadmin","subadmin"]}><AdminDashboard /></ProtectedRoute>
-      } />
-      <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
-      <Route path="/profile/:userId" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
-      <Route path="/subscription" element={<ProtectedRoute><SubscriptionPage /></ProtectedRoute>} />
-      <Route path="/pay-history" element={<ProtectedRoute><PayHistoryPage /></ProtectedRoute>} />
-      <Route path="/messages" element={<ProtectedRoute><MessagesPage /></ProtectedRoute>} />
-      <Route path="/jobs-itinerary" element={<ProtectedRoute><JobsItinerary /></ProtectedRoute>} />
-      <Route path="/archive" element={<ProtectedRoute roles={["contractor","admin","superadmin"]}><ArchivePage /></ProtectedRoute>} />
-      <Route path="/settings" element={<ProtectedRoute><AppSettingsPage /></ProtectedRoute>} />
-      <Route path="/pages/:slug" element={<CmsPage />} />
-      <Route path="/j/:jobId" element={<SharedJobPage />} />
-      <Route path="/help" element={<Help />} />
-      <Route path="/help/report-a-concern" element={<ProtectedRoute><ReportConcern /></ProtectedRoute>} />
-      <Route path="/report-concern" element={<Navigate to="/help/report-a-concern" replace />} />
-      <Route path="/help/resolve-issue" element={<ProtectedRoute><ResolveIssue /></ProtectedRoute>} />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <>
+      <Routes>
+        <Route path="/" element={user ? <DashboardRedirect /> : <LandingPage />} />
+        <Route path="/auth" element={user ? <DashboardRedirect /> : <AuthPage />} />
+        <Route path="/crew/dashboard" element={
+          <ProtectedRoute roles={["crew"]}><OnboardingGate><CrewDashboard /></OnboardingGate></ProtectedRoute>
+        } />
+        <Route path="/contractor/dashboard" element={
+          <ProtectedRoute roles={["contractor"]}><OnboardingGate><ContractorDashboard /></OnboardingGate></ProtectedRoute>
+        } />
+        <Route path="/admin/dashboard" element={
+          <ProtectedRoute roles={["admin","superadmin","subadmin"]}><AdminDashboard /></ProtectedRoute>
+        } />
+        <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+        <Route path="/profile/:userId" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+        <Route path="/subscription" element={<ProtectedRoute><SubscriptionPage /></ProtectedRoute>} />
+        <Route path="/pay-history" element={<ProtectedRoute><PayHistoryPage /></ProtectedRoute>} />
+        <Route path="/messages" element={<ProtectedRoute><MessagesPage /></ProtectedRoute>} />
+        <Route path="/jobs-itinerary" element={<ProtectedRoute><JobsItinerary /></ProtectedRoute>} />
+        <Route path="/archive" element={<ProtectedRoute roles={["contractor","admin","superadmin"]}><ArchivePage /></ProtectedRoute>} />
+        <Route path="/settings" element={<ProtectedRoute><AppSettingsPage /></ProtectedRoute>} />
+        <Route path="/pages/:slug" element={<CmsPage />} />
+        <Route path="/j/:jobId" element={<SharedJobPage />} />
+        <Route path="/help" element={<Help />} />
+        <Route path="/help/report-a-concern" element={<ProtectedRoute><ReportConcern /></ProtectedRoute>} />
+        <Route path="/report-concern" element={<Navigate to="/help/report-a-concern" replace />} />
+        <Route path="/help/resolve-issue" element={<ProtectedRoute><ResolveIssue /></ProtectedRoute>} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+      {/* PWA install banner — crew only */}
+      {user?.role === "crew" && <PWAInstallBanner />}
+    </>
   );
 }
 

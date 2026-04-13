@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="100" fill="#0F172A"/>
+  <!-- Hard hat -->
+  <path d="M256 100 C186 100 132 148 128 208 L106 218 L106 246 L406 246 L406 218 L384 208 C380 148 326 100 256 100 Z" fill="#F59E0B"/>
+  <rect x="96" y="234" width="320" height="32" rx="16" fill="#D97706"/>
+  <!-- Checklist lines -->
+  <rect x="152" y="300" width="208" height="22" rx="11" fill="#38BDF8" opacity="0.9"/>
+  <rect x="152" y="340" width="168" height="22" rx="11" fill="#38BDF8" opacity="0.7"/>
+  <rect x="152" y="380" width="190" height="22" rx="11" fill="#38BDF8" opacity="0.5"/>
+  <!-- Check marks -->
+  <path d="M116 308 L134 326 L166 294" stroke="#10B981" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <path d="M116 348 L134 366 L166 334" stroke="#10B981" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <path d="M116 388 L134 406 L166 374" stroke="#10B981" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+</svg>
