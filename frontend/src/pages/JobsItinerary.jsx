@@ -561,19 +561,19 @@ export default function JobsItinerary() {
             </div>
 
             {/* Spacer when footer bar is visible */}
-            {selectedJob && <div className="h-20" />}
+            {selectedJob && <div className="h-28" />}
           </>
         )}
       </div>
 
-      {/* Sticky Footer Action Bar */}
+      {/* Floating Action Bar */}
       <div
         data-testid="itinerary-footer-bar"
-        className={`fixed bottom-0 left-0 right-0 z-50 transition-all duration-300
-          ${selectedJob ? "translate-y-0 opacity-100" : "translate-y-full opacity-0 pointer-events-none"}`}
+        className={`fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-4xl transition-all duration-300
+          ${selectedJob ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0 pointer-events-none"}`}
       >
-        <div className="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700 shadow-2xl">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+        <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200/80 dark:border-slate-700/60 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.18)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
+          <div className="px-4 py-3">
             <div className="flex items-center gap-2 flex-wrap">
 
               {/* Job title label */}
