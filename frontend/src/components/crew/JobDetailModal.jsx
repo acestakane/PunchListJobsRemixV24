@@ -65,36 +65,15 @@ export function JobDetailModal({
           <div className="border-t border-slate-200 dark:border-slate-700 pt-3 mb-4">
             <p className="text-xs font-semibold text-slate-500 uppercase mb-2">Contractor Contact</p>
 
-            {/* Pending + no paid reveal → show locked state + reveal button */}
-            {isPending && !contractorInfo.has_paid_reveal && (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm text-slate-400 italic">
-                  <Phone className="w-3.5 h-3.5 flex-shrink-0" />
-                  <span className="text-xs">Hidden until approved</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-slate-400 italic">
-                  <Mail className="w-3.5 h-3.5 flex-shrink-0" />
-                  <span className="text-xs">Hidden until approved</span>
-                </div>
-                {job.crew_accepted?.length < job.crew_needed && (
-                  <button onClick={onReveal} disabled={revealLoading}
-                    className="w-full mt-1 py-2 rounded-lg text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-white transition-colors disabled:opacity-60"
-                    data-testid="reveal-contact-btn">
-                    {revealLoading ? "Processing..." : `Reveal Contractor Info ($${REVEAL_CONTACT_PRICE} demo)`}
-                  </button>
-                )}
-              </div>
-            )}
-
-            {/* Approved OR paid reveal → show real contact */}
-            {(isAccepted || contractorInfo.has_paid_reveal) && (
-              <>
+            {/* Revealed: accepted OR paid reveal */}
+            {(isAccepted || contractorInfo.has_paid_reveal) ? (
+              <div className="space-y-1.5">
                 {contractorInfo.phone && (
-                  <div className="flex items-center gap-2 text-sm mb-1">
+                  <div className="flex items-center gap-2 text-sm">
                     <Phone className="w-3.5 h-3.5 text-[#0000FF] flex-shrink-0" />
                     <span className="text-slate-700 dark:text-white">{contractorInfo.phone}</span>
                     {contractorInfo.has_paid_reveal && !isAccepted && (
-                      <span className="text-[10px] text-amber-600 bg-amber-50 dark:bg-amber-900/30 px-1.5 py-0.5 rounded-full">Paid Reveal</span>
+                      <span className="text-[10px] text-amber-600 bg-amber-50 dark:bg-amber-900/30 px-1.5 py-0.5 rounded-full font-semibold">Paid Reveal</span>
                     )}
                   </div>
                 )}
@@ -104,29 +83,37 @@ export function JobDetailModal({
                     <span className="text-slate-700 dark:text-white">{contractorInfo.email}</span>
                   </div>
                 )}
-              </>
-            )}
-
-            {/* Not applied (just viewing) */}
-            {!isPending && !isAccepted && !contractorInfo.has_paid_reveal && (
-              <>
-                {contractorInfo.phone && (
-                  <div className="flex items-center gap-2 text-sm mb-1">
-                    <Phone className="w-3.5 h-3.5 text-[#0000FF] flex-shrink-0" />
-                    <span className={contractorInfo.phone.startsWith("*") ? "text-slate-400 italic text-xs" : "text-slate-700 dark:text-white"}>
-                      {contractorInfo.phone.startsWith("*") ? "Upgrade plan to view" : contractorInfo.phone}
-                    </span>
-                  </div>
-                )}
-                {contractorInfo.email && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <Mail className="w-3.5 h-3.5 text-[#0000FF] flex-shrink-0" />
-                    <span className={contractorInfo.email.startsWith("*") ? "text-slate-400 italic text-xs" : "text-slate-700 dark:text-white"}>
-                      {contractorInfo.email.startsWith("*") ? "Upgrade plan to view" : contractorInfo.email}
-                    </span>
-                  </div>
-                )}
-              </>
+              </div>
+            ) : (
+              /* Hidden: show locked placeholders + reveal button */
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm text-slate-400">
+                  <Phone className="w-3.5 h-3.5 flex-shrink-0" />
+                  <span className="italic text-xs tracking-wide">Hidden until revealed</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-slate-400">
+                  <Mail className="w-3.5 h-3.5 flex-shrink-0" />
+                  <span className="italic text-xs tracking-wide">Hidden until revealed</span>
+                </div>
+                <button
+                  onClick={onReveal}
+                  disabled={revealLoading}
+                  data-testid="reveal-contact-btn"
+                  className="w-full mt-1 py-2.5 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-600 active:scale-95 text-white transition-all disabled:opacity-60 flex items-center justify-center gap-1.5"
+                >
+                  {revealLoading ? (
+                    <>
+                      <span className="w-3.5 h-3.5 border-2 border-white/60 border-t-white rounded-full animate-spin inline-block" />
+                      Processing...
+                    </>
+                  ) : (
+                    `Reveal Contact — $${REVEAL_CONTACT_PRICE} (one-time)`
+                  )}
+                </button>
+                <p className="text-[10px] text-slate-400 text-center">
+                  Unlocks phone &amp; email for this job only
+                </p>
+              </div>
             )}
           </div>
         )}

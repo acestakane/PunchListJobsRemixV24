@@ -1,0 +1,41 @@
+{
+  "summary": "Tested contact hiding + paid reveal feature for crew dashboard. All backend and frontend tests passed. Hidden state, reveal flow, idempotency, and contractor block all working correctly.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_reveal_contact.py",
+    "/app/test_reports/pytest/reveal_contact_v2.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": ["/app/backend/tests/test_reveal_contact.py"],
+  "success_rate": {"backend": "100% (5/5)", "frontend": "100%"},
+  "test_credentials": "crew1@punchlistjobs.com / Crew@123, crew2@punchlistjobs.com / Crew@123, crew3@punchlistjobs.com / Crew@123",
+  "seed_data_creation": "Backend tests triggered paid reveals for crew2 and crew3 on Counter Topo job",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Contact reveal feature fully verified. crew1/crew2/crew3 all have paid reveals on Counter Topo job now. Use crew4/crew5 for fresh hidden-state testing. Backend /api/jobs/{job_id}/reveal-contact works correctly with idempotency and contractor block.",
+  "test_results": {
+    "backend": [
+      "test_crew1_hidden_contact_no_reveal: PASS - phone/email absent when no reveal",
+      "test_reveal_contact_endpoint: PASS - returns has_paid_reveal=True",
+      "test_contact_visible_after_reveal: PASS - contact visible after reveal",
+      "test_idempotency_no_double_charge: PASS - Already revealed message returned",
+      "test_contractor_cannot_use_reveal: PASS - 403 returned"
+    ],
+    "frontend": [
+      "Hidden state UI: PASS - Both phone and email show 'Hidden until revealed' italic placeholder",
+      "Reveal button visible: PASS - data-testid=reveal-contact-btn shows 'Reveal Contact — $2.99 (one-time)'",
+      "Reveal flow: PASS - Click reveal → success toast 'Contact info unlocked! ($2.99 demo charge)' → real contact shown with Paid Reveal badge",
+      "Idempotency: PASS - backend confirms no double-charge",
+      "Accepted crew contact: Verified via backend (crew2 approved and contact visible)"
+    ]
+  }
+}

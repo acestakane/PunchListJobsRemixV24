@@ -453,7 +453,7 @@ REVEAL_CONTACT_PRICE = 2.99  # USD — one-time fee to view contractor contact w
 
 @router.post("/{job_id}/reveal-contact")
 async def reveal_contact(job_id: str, current_user: dict = Depends(get_current_user)):
-    """Crew pays a one-time fee to reveal contractor contact info before approval."""
+    """Crew pays a one-time fee to reveal contractor contact info for a job."""
     if current_user["role"] != "crew":
         raise HTTPException(status_code=403, detail="Only crew can use paid reveal")
 
@@ -463,16 +463,13 @@ async def reveal_contact(job_id: str, current_user: dict = Depends(get_current_u
 
     crew_id = current_user["id"]
 
-    if crew_id not in job.get("crew_pending", []):
-        raise HTTPException(status_code=400, detail="You must have a pending application for this job")
-
     # Idempotent: already purchased
     if crew_id in job.get("paid_reveals", []):
         return {"message": "Already revealed", "has_paid_reveal": True}
 
-    # Prevent new purchases when job is full
-    if len(job.get("crew_accepted", [])) >= job.get("crew_needed", 1):
-        raise HTTPException(status_code=400, detail="Job is full — contact reveal is not available")
+    # Accepted crew don't need to pay
+    if crew_id in job.get("crew_accepted", []):
+        return {"message": "Already approved — contact visible", "has_paid_reveal": False}
 
     # Record payment (demo mode — Square token optional)
     tx_id = str(uuid.uuid4())
