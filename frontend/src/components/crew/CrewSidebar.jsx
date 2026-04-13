@@ -136,10 +136,10 @@ export function CrewSidebar({
         </div>
       )}
 
-      {/* My Active Jobs */}
+      {/* My Jobs */}
       <div className="card p-4">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="font-bold text-[#050A30] dark:text-white text-sm" style={{ fontFamily: "Manrope, sans-serif" }}>My Active Jobs</h3>
+          <h3 className="font-bold text-[#050A30] dark:text-white text-sm" style={{ fontFamily: "Manrope, sans-serif" }}>My Jobs</h3>
           <button onClick={onMessageAdmin} className="text-xs flex items-center gap-1 text-[#0000FF] dark:text-blue-400 hover:underline font-semibold" data-testid="crew-message-admin-btn">
             <MessageCircle className="w-3 h-3" /> Admin Support
           </button>
