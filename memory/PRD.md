@@ -79,6 +79,8 @@ Imported from: https://github.com/acestakane/PunchListJobsRemixV20.git
 ## Bug Fixes & Quality (2026-04-12 continued)
 - Fixed React "Objects are not valid as a React child" crash: Created `/app/frontend/src/utils/errorUtils.js` with `getErr()` helper that safely extracts string messages from FastAPI error responses (including 422 validation array detail). Updated 14 files including AuthPage, ContractorDashboard, CrewDashboard, AdminDashboard, JobsItinerary, ProfilePage, SubscriptionPage, ArchivePage, ReportConcern, and 6 admin components.
 - Added custom zoom +/- controls to `JobMap.jsx`: Disabled Leaflet's rotating built-in zoom control (`zoomControl={false}`), added `ZoomController` component (useMap ref), added custom zoom-in/zoom-out buttons to the non-rotating overlay alongside existing controls.
+- Auth token migrated from `localStorage` → `sessionStorage` in `AuthContext.jsx` (token clears on tab/browser close; reduces risk on shared devices). `ONBOARDING_KEY` remains in localStorage (not sensitive, intentionally persistent).
+- PWA "Save Job to Phone" install banner: Added `public/manifest.json`, `public/sw.js` (minimal service worker), SVG app icons (192/512px). `PWAInstallBanner` component shows only for crew role — listens for `beforeinstallprompt`, iOS fallback tip, dismiss stored in sessionStorage. Registered via `App.js`.
 
 ## Backend Logic Fix (2026-04-12)
 - `approve_applicant` in `job_routes.py`: added approval guard (denies immediately if `crew_accepted >= crew_needed`) + auto-deny logic (when approval fills the quota, all remaining `crew_pending` are auto-denied with notifications)
