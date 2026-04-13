@@ -81,6 +81,9 @@ Imported from: https://github.com/acestakane/PunchListJobsRemixV20.git
 - Added custom zoom +/- controls to `JobMap.jsx`: Disabled Leaflet's rotating built-in zoom control (`zoomControl={false}`), added `ZoomController` component (useMap ref), added custom zoom-in/zoom-out buttons to the non-rotating overlay alongside existing controls.
 - Auth token migrated from `localStorage` → `sessionStorage` in `AuthContext.jsx` (token clears on tab/browser close; reduces risk on shared devices). `ONBOARDING_KEY` remains in localStorage (not sensitive, intentionally persistent).
 - PWA "Save Job to Phone" install banner: Added `public/manifest.json`, `public/sw.js` (minimal service worker), SVG app icons (192/512px). `PWAInstallBanner` component shows only for crew role — listens for `beforeinstallprompt`, iOS fallback tip, dismiss stored in sessionStorage. Registered via `App.js`.
+- Itinerary footer bar converted to floating card: `fixed bottom-4 left-1/2 -translate-x-1/2 max-w-4xl rounded-2xl backdrop-blur-md` with rich shadow and glass background.
+- CrewSidebar "My Active Jobs" renamed to "My Jobs".
+- Crew Dashboard JobMap contact reveal redesign: Contractor phone/email always hidden for crew in job context. Two states — revealed (accepted OR paid) vs. "Hidden until revealed" placeholders + $2.99 one-time reveal button. Backend: removed pending-only restriction from `reveal-contact` endpoint; paid reveal overrides free-plan masking in `user_routes.py`.
 
 ## Backend Logic Fix (2026-04-12)
 - `approve_applicant` in `job_routes.py`: added approval guard (denies immediately if `crew_accepted >= crew_needed`) + auto-deny logic (when approval fills the quota, all remaining `crew_pending` are auto-denied with notifications)
