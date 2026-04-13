@@ -70,6 +70,12 @@ Imported from: https://github.com/acestakane/PunchListJobsRemixV20.git
 - Add GOOGLE_MAPS_API_KEY for better geocoding
 - Profile photo upload (works, stored locally)
 
+## Component Refactoring (2026-04-12)
+- ContractorDashboard.jsx: 1261 → 746 lines (-41%). Extracted: RatingModal, CrewProfileModal, CrewCard, CrewRequestModal, ConfirmArchiveModal to `components/contractor/`
+- CrewDashboard.jsx: 900 → 522 lines (-42%). Extracted: JobDetailModal, CrewSidebar to `components/crew/`
+- Shared: ProfileCompletionPopup to `components/` (used by both dashboards)
+- JobFormModal.jsx updated: now includes PunchList Tasks, Job Images (max 4), required Description, normalizeTrade, and address autocomplete (fully self-contained)
+
 ## Code Quality Improvements (2026-04-12)
 - Fixed missing React hook dependencies: `fetchMe` wrapped in `useCallback([logout])` in AuthContext; `useEffect` deps updated to `[token, fetchMe]`
 - Fixed `MessagesPage.jsx` initial load `useEffect` stale closure: uses `initialThreadRef` + proper deps `[fetchThreads, openThread]`
