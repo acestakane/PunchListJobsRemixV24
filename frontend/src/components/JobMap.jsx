@@ -119,9 +119,9 @@ function FlyTo({ target }) {
 
 function ZoomController({ zoomRef }) {
   const map = useMap();
-  useEffect(() => {
-    if (zoomRef) zoomRef.current = map;
-  }, [map, zoomRef]);
+  // Assign synchronously — useMap() returns a stable instance,
+  // and we need mapRef.current ready before any click handler fires.
+  if (zoomRef) zoomRef.current = map;
   return null;
 }
 

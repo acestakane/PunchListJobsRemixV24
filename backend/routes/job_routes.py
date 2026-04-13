@@ -457,7 +457,10 @@ async def reveal_contact(job_id: str, current_user: dict = Depends(get_current_u
     if current_user["role"] != "crew":
         raise HTTPException(status_code=403, detail="Only crew can use paid reveal")
 
-    job = await db.jobs.find_one({"id": job_id}, {"_id": 0})
+    job = await db.jobs.find_one(
+        {"id": job_id},
+        {"_id": 0, "paid_reveals": 1, "crew_accepted": 1, "title": 1}
+    )
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
 

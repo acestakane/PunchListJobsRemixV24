@@ -184,27 +184,24 @@ async def get_public_profile(
     caller_id = current_user["id"]
     viewer_is_free = current_user.get("subscription_status") in ("free", "expired", None)
 
-    # Contact masking: always hide phone/email for crew viewing a contractor
-    # via a job context, unless they are accepted OR have a paid reveal.
+    # Contact masking: for crew viewing a contractor via a job, hide phone/email
+    # unless they are accepted OR have a paid reveal for that specific job.
     has_paid_reveal = False
-    mask_for_pending = False
-    if job_id and current_user.get("role") == "crew" and user_id != caller_id:
-        job = await db.jobs.find_one(
-            {"id": job_id},
-            {"_id": 0, "crew_accepted": 1, "crew_pending": 1, "paid_reveals": 1}
-        )
-        if job:
-            is_accepted     = caller_id in job.get("crew_accepted", [])
-            has_paid_reveal = caller_id in job.get("paid_reveals", [])
-            if not is_accepted and not has_paid_reveal:
-                mask_for_pending = True
+    is_crew_job_view = bool(job_id) and current_user.get("role") == "crew" and user_id != caller_id
 
-    # In a job context, paid reveal and accepted status override free-plan masking.
-    # Outside a job context, free-plan masking applies normally.
-    if job_id and current_user.get("role") == "crew" and user_id != caller_id:
-        should_mask = mask_for_pending
+    if is_crew_job_view:
+        job_doc = await db.jobs.find_one(
+            {"id": job_id},
+            {"_id": 0, "crew_accepted": 1, "paid_reveals": 1}
+        )
+        if job_doc:
+            is_accepted     = caller_id in job_doc.get("crew_accepted", [])
+            has_paid_reveal = caller_id in job_doc.get("paid_reveals", [])
+            should_mask     = not is_accepted and not has_paid_reveal
+        else:
+            should_mask = True  # job not found → hide contact by default
     else:
-        should_mask = (viewer_is_free and user_id != caller_id) or mask_for_pending
+        should_mask = viewer_is_free and user_id != caller_id
 
     if should_mask:
         profile.pop("phone", None)
