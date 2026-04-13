@@ -1,0 +1,40 @@
+{
+  "summary": "Tested post-refactoring of ContractorDashboard and CrewDashboard into sub-components. All key functionality verified: contractor dashboard loads, job form modal opens with all fields (title, description, tasks, images, trade, address), crew cards show View/Share/Request buttons, crew dashboard loads with stats/referral, online/offline toggle works, Smart Match button present, map markers open JobDetailModal with Message/Share buttons.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "N/A (frontend-only testing)",
+    "frontend": "100% (all scenarios passed)"
+  },
+  "test_credentials": "contractor1@punchlistjobs.com / Contractor@123, crew1@punchlistjobs.com / Crew@123",
+  "seed_data_creation": "",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "All sub-components work correctly post-refactor. ContractorDashboard: Post Job opens JobFormModal with title, description, PunchList Tasks (Add button works, task input appears), Job Images (Choose Files), Trade select (no __cat__ prefix in options), Crew Needed, Start Time, Pay Rate, Location, Preview button. Crew cards show View/Share/Request buttons. CrewDashboard: stats panel (Jobs Done, Rating, Points, Accepted), referral code visible, Online/Offline toggle works (shows toast 'You are now Online'), Smart Match button present, map markers open JobDetailModal with trade/crew/location details and Message Contractor + Share buttons.",
+  "passed_tests": [
+    "Contractor login → /contractor/dashboard loads",
+    "Post Job button opens JobFormModal",
+    "JobFormModal has title, description, PunchList Tasks, Job Images, Trade select, Crew Needed, Start Time, Pay Rate, Address fields",
+    "Add Task button works - task input appears",
+    "Trade options have no __cat__: prefix",
+    "Crew cards show View/Share/Request buttons (4+ each)",
+    "Crew login → /crew/dashboard loads",
+    "Crew sidebar shows Your Stats (Jobs Done, Rating, Points, Accepted), My Active Jobs",
+    "Referral code visible in sidebar",
+    "Online/Offline toggle works (toast confirms state change)",
+    "Smart Match button present",
+    "Map markers clickable - JobDetailModal opens with job details and Message Contractor/Share buttons"
+  ],
+  "failed_tests": []
+}

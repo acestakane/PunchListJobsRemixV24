@@ -6,12 +6,13 @@ import TradeSelect from "../components/TradeSelect";
 import Navbar from "../components/Navbar";
 import JobMap from "../components/JobMap";
 import JobCard from "../components/JobCard";
+import { JobDetailModal } from "../components/crew/JobDetailModal";
+import { CrewSidebar } from "../components/crew/CrewSidebar";
+import { ProfileCompletionPopup } from "../components/ProfileCompletionPopup";
 import { toast } from "sonner";
 import axios from "axios";
 import {
-  MapPin, List, Filter, Zap, Clock, Star, RefreshCw, AlertCircle, X,
-  CheckCircle, Camera, Phone, Navigation, ClipboardList, FileText, ToggleLeft, ToggleRight, AlertTriangle,
-  UserCheck, UserX, MessageCircle, Eye, Mail, LogOut, Share2
+  MapPin, List, Zap, Clock, AlertCircle, Navigation, ToggleLeft, ToggleRight, RefreshCw,
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -42,6 +43,8 @@ export default function CrewDashboard() {
   const [boostLoading, setBoostLoading] = useState(false);
   const [showCompleteProfilePopup, setShowCompleteProfilePopup] = useState(false);
   const watchIdRef = React.useRef(null);
+
+  // ─── Data fetchers ──────────────────────────────────────────────────────────
 
   const fetchJobs = useCallback(async () => {
     try {
@@ -138,38 +141,34 @@ export default function CrewDashboard() {
       }
       if (msg.type === "cancel_accepted") {
         const text = `Your cancel request for "${msg.job_title}" was approved.`;
-        toast.success(text);
-        pushAlert(text, "success");
+        toast.success(text); pushAlert(text, "success");
         fetchMyJobs(); fetchJobs();
       }
       if (msg.type === "cancel_denied") {
         const text = `Your cancel request for "${msg.job_title}" was denied.`;
-        toast.info(text);
-        pushAlert(text, "info");
+        toast.info(text); pushAlert(text, "info");
       }
       if (msg.type === "application_approved") {
         const text = `Your application for "${msg.job_title}" was approved!`;
-        toast.success(text);
-        pushAlert(text, "success");
+        toast.success(text); pushAlert(text, "success");
         fetchMyJobs(); fetchJobs();
       }
       if (msg.type === "application_declined") {
         const text = `Your application for "${msg.job_title}" was not selected.`;
-        toast.info(text);
-        pushAlert(text, "info");
+        toast.info(text); pushAlert(text, "info");
         fetchMyJobs();
       }
       if (msg.type === "job_started") {
         const text = `"${msg.job_title}" has started! Proceed to site.`;
-        toast.success(text);
-        pushAlert(text, "success");
+        toast.success(text); pushAlert(text, "success");
         fetchMyJobs();
       }
     });
     return remove;
   }, [addListener, fetchCrewRequests, fetchMyJobs, fetchJobs, pushAlert]);
 
-  // Location toggle handler with live GPS tracking (watchPosition)
+  // ─── Handlers ───────────────────────────────────────────────────────────────
+
   const toggleLocation = () => {
     if (!locationEnabled) {
       if (navigator.geolocation) {
@@ -180,9 +179,7 @@ export default function CrewDashboard() {
             sendLocation(loc.lat, loc.lng);
             axios.post(`${API}/users/location`, { lat: loc.lat, lng: loc.lng }).catch(() => {});
           },
-          (err) => {
-            if (err.code === 1) toast.error("Location access denied. Please allow in browser settings.");
-          },
+          (err) => { if (err.code === 1) toast.error("Location access denied. Please allow in browser settings."); },
           { enableHighAccuracy: true, maximumAge: 30000, timeout: 10000 }
         );
         watchIdRef.current = id;
@@ -191,35 +188,19 @@ export default function CrewDashboard() {
         toast.success("Live GPS tracking enabled. Showing nearby jobs.");
       }
     } else {
-      if (watchIdRef.current !== null) {
-        navigator.geolocation.clearWatch(watchIdRef.current);
-        watchIdRef.current = null;
-      }
-      setLocationEnabled(false);
-      setUserLocation(null);
+      if (watchIdRef.current !== null) { navigator.geolocation.clearWatch(watchIdRef.current); watchIdRef.current = null; }
+      setLocationEnabled(false); setUserLocation(null);
       localStorage.removeItem("gps_enabled");
       toast.info("Location tracking disabled.");
     }
   };
 
   // Auto-restore GPS from previous session
-  useEffect(() => {
-    if (localStorage.getItem("gps_enabled") === "1") {
-      toggleLocation();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { if (localStorage.getItem("gps_enabled") === "1") toggleLocation(); }, []);
 
-  // Cleanup watchPosition on unmount
-  useEffect(() => {
-    return () => {
-      if (watchIdRef.current !== null) {
-        navigator.geolocation.clearWatch(watchIdRef.current);
-      }
-    };
-  }, []);
+  useEffect(() => { return () => { if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current); }; }, []);
 
-  // Online/Offline toggle
   const toggleOnlineStatus = async () => {
     const newStatus = !isOnline;
     try {
@@ -230,23 +211,16 @@ export default function CrewDashboard() {
   };
 
   const acceptJob = async (jobId) => {
-    if (subStatus?.status === "expired") {
-      toast.error("Subscription expired. Please renew to accept jobs.");
-      return;
-    }
+    if (subStatus?.status === "expired") { toast.error("Subscription expired. Please renew to accept jobs."); return; }
     try {
       await axios.post(`${API}/jobs/${jobId}/accept`);
       toast.success(selectedJob?.is_emergency ? "Emergency job accepted!" : "Application submitted! Awaiting contractor approval.");
       fetchJobs(); fetchMyJobs();
     } catch (e) {
       const detail = e?.response?.data?.detail || "";
-      if (detail.includes("SUBSCRIPTION_EXPIRED")) {
-        toast.error("Your subscription has expired. Please renew.");
-      } else if (detail.includes("already claimed")) {
-        toast.warning("Someone else got this emergency job first!");
-      } else {
-        toast.error(detail || "Failed to accept job");
-      }
+      if (detail.includes("SUBSCRIPTION_EXPIRED")) toast.error("Your subscription has expired. Please renew.");
+      else if (detail.includes("already claimed")) toast.warning("Someone else got this emergency job first!");
+      else toast.error(detail || "Failed to accept job");
     }
   };
 
@@ -284,7 +258,6 @@ export default function CrewDashboard() {
     } catch (e) { toast.error(e?.response?.data?.detail || "Failed to open support chat"); }
   };
 
-  // Fetch contractor info when preview modal opens (pass job_id for pending masking)
   useEffect(() => {
     if (selectedJob?.contractor_id) {
       axios.get(`${API}/users/public/${selectedJob.contractor_id}?job_id=${selectedJob.id}`)
@@ -300,7 +273,6 @@ export default function CrewDashboard() {
     try {
       const res = await axios.post(`${API}/jobs/${selectedJob.id}/reveal-contact`);
       toast.success(`Contact info unlocked! ($${res.data.amount || REVEAL_CONTACT_PRICE} demo charge)`);
-      // Re-fetch contractor profile now that reveal is recorded
       const updated = await axios.get(`${API}/users/public/${selectedJob.contractor_id}?job_id=${selectedJob.id}`);
       setContractorInfo(updated.data);
     } catch (e) { toast.error(e?.response?.data?.detail || "Failed to unlock contact info"); }
@@ -308,42 +280,34 @@ export default function CrewDashboard() {
   };
 
   const shareJob = async (job) => {
-    // /api/j/{id} is served by the backend with OG meta tags; real browsers
-    // are immediately redirected to /j/{id} (the React SPA page).
     const shareUrl = `${window.location.origin}/api/j/${job.id}`;
     const shareText = `${job.title} — $${job.pay_rate}/hr in ${job.location?.city || "your area"}`;
     if (navigator.share) {
-      try { await navigator.share({ title: job.title, text: shareText, url: shareUrl }); }
-      catch { /* cancelled */ }
+      try { await navigator.share({ title: job.title, text: shareText, url: shareUrl }); } catch { /* cancelled */ }
     } else {
       await navigator.clipboard.writeText(shareUrl);
       toast.success("Job link copied to clipboard!");
     }
   };
 
-
-
   const acceptCrewRequest = async (requestId) => {
     try {
       await axios.put(`${API}/users/requests/${requestId}/accept`);
-      toast.success("Request accepted!");
-      fetchCrewRequests();
+      toast.success("Request accepted!"); fetchCrewRequests();
     } catch (e) { toast.error(e?.response?.data?.detail || "Failed to accept"); }
   };
 
   const declineCrewRequest = async (requestId) => {
     try {
       await axios.put(`${API}/users/requests/${requestId}/decline`);
-      toast.info("Request declined.");
-      fetchCrewRequests();
+      toast.info("Request declined."); fetchCrewRequests();
     } catch (e) { toast.error(e?.response?.data?.detail || "Failed to decline"); }
   };
 
+  // ─── Derived state ───────────────────────────────────────────────────────────
   const acceptedIds = myJobs.filter(j => j.my_status !== "pending").map(j => j.id);
   const pendingIds  = myJobs.filter(j => j.my_status === "pending").map(j => j.id);
   const isExpired = subStatus?.status === "expired";
-  const acceptedJobsCount = acceptedIds.length;
-  // Merge pending jobs into map feed so pending markers appear even if job is no longer "open"
   const mapJobs = [
     ...jobs,
     ...myJobs.filter(j => j.my_status === "pending" && !jobs.some(jb => jb.id === j.id)),
@@ -362,9 +326,7 @@ export default function CrewDashboard() {
               <p className="text-sm font-bold text-red-700 dark:text-red-300">Subscription Expired</p>
               <p className="text-xs text-red-600 dark:text-red-400">Renew to accept jobs and appear on the map</p>
             </div>
-            <a href="/subscription"
-              className="bg-red-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-red-700 transition-colors"
-              data-testid="renew-subscription-btn">
+            <a href="/subscription" className="bg-red-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-red-700 transition-colors" data-testid="renew-subscription-btn">
               Renew Now
             </a>
           </div>
@@ -402,23 +364,18 @@ export default function CrewDashboard() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            {/* Online/Offline Toggle */}
             <button onClick={toggleOnlineStatus}
               className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-bold border-2 transition-all ${isOnline ? "bg-emerald-600 border-emerald-600 text-white" : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500"}`}
               data-testid="online-status-toggle">
               {isOnline ? <ToggleRight className="w-4 h-4" /> : <ToggleLeft className="w-4 h-4" />}
               {isOnline ? "Online" : "Offline"}
             </button>
-
-            {/* Location Toggle - Live GPS */}
             <button onClick={toggleLocation}
               className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-bold border-2 transition-all ${locationEnabled ? "bg-blue-600 border-blue-600 text-white" : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500"}`}
               data-testid="location-toggle">
               <Navigation className="w-4 h-4" />
               {locationEnabled ? "LIVE ON MAP" : "Enable Location"}
             </button>
-
-            {/* Map/List Toggle */}
             <div className="flex bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-1">
               <button onClick={() => setView("map")}
                 className={`px-3 py-1.5 rounded text-sm font-semibold flex items-center gap-1 transition-colors ${view === "map" ? "bg-[#0000FF] text-white" : "text-slate-500"}`}
@@ -431,7 +388,6 @@ export default function CrewDashboard() {
                 <List className="w-4 h-4" /> List
               </button>
             </div>
-
             <button onClick={() => setSmartMatch(!smartMatch)}
               className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-bold border transition-colors ${smartMatch ? "border-transparent text-[#050A30]" : "bg-white dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700 hover:border-[#0000FF]"}`}
               style={smartMatch ? { backgroundColor: "var(--theme-accent)" } : {}}
@@ -454,21 +410,12 @@ export default function CrewDashboard() {
         {/* Filters Row */}
         <div className="flex flex-wrap gap-2 mb-4 items-center">
           <div className="flex-1 min-w-[180px] max-w-xs">
-            <TradeSelect
-              grouped={grouped}
-              value={tradeFilter}
-              onChange={setTradeFilter}
-              placeholder="All Trades"
-              data-testid="filter-trade-select"
-            />
+            <TradeSelect grouped={grouped} value={tradeFilter} onChange={setTradeFilter} placeholder="All Trades" data-testid="filter-trade-select" />
           </div>
           <select value={radius} onChange={e => setRadius(Number(e.target.value))}
             className="px-3 py-1.5 rounded-full text-xs font-semibold border bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700"
             data-testid="radius-select">
-            <option value={10}>10 mi</option>
-            <option value={25}>25 mi</option>
-            <option value={50}>50 mi</option>
-            <option value={100}>100 mi</option>
+            {[10, 25, 50, 100].map(r => <option key={r} value={r}>{r} mi</option>)}
           </select>
           <button onClick={fetchJobs}
             className="px-3 py-1.5 rounded-full text-xs font-semibold border bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-50 flex items-center gap-1"
@@ -482,7 +429,9 @@ export default function CrewDashboard() {
           {/* Map / Job List */}
           <div className="lg:col-span-2">
             {view === "map" ? (
-              <JobMap jobs={mapJobs} pendingJobIds={pendingIds} userLocation={locationEnabled ? userLocation : null} onLocate={v => setUserLocation(v)} profileAddress={user?.address} onJobClick={setSelectedJob} onRefresh={fetchJobs} onRadiusChange={setRadius} height="500px" />
+              <JobMap jobs={mapJobs} pendingJobIds={pendingIds} userLocation={locationEnabled ? userLocation : null}
+                onLocate={v => setUserLocation(v)} profileAddress={user?.address} onJobClick={setSelectedJob}
+                onRefresh={fetchJobs} onRadiusChange={setRadius} height="500px" />
             ) : (
               <div className="space-y-3 max-h-[600px] overflow-y-auto pr-1">
                 {loading ? (
@@ -522,377 +471,51 @@ export default function CrewDashboard() {
           </div>
 
           {/* Sidebar */}
-          <div className="space-y-4">
-            {/* Profile Completion */}
-            {profileCompletion && !profileCompletion.is_complete && (
-              <div className="card p-4" data-testid="profile-completion-panel">
-                <h3 className="font-bold text-[#050A30] dark:text-white text-sm mb-3 flex items-center gap-2" style={{ fontFamily: "Manrope, sans-serif" }}>
-                  <AlertCircle className="w-4 h-4 text-amber-500" />
-                  Profile Completion ({profileCompletion.percentage}%)
-                </h3>
-                <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2 mb-3">
-                  <div className="bg-[#0000FF] h-2 rounded-full transition-all" style={{ width: `${profileCompletion.percentage}%` }} />
-                </div>
-                <div className="space-y-2">
-                  {[
-                    { key: "photo", icon: Camera, label: "Profile Photo" },
-                    { key: "phone", icon: Phone, label: "Phone Number" },
-                    { key: "address", icon: MapPin, label: "Location/Address" },
-                    { key: "skills", icon: ClipboardList, label: "Trade/Skills" },
-                    { key: "bio", icon: FileText, label: "Bio" },
-                  ].map(({ key, icon: Icon, label }) => (
-                    <div key={key} className="flex items-center gap-2">
-                      {profileCompletion.checks[key] ? (
-                        <CheckCircle className="w-4 h-4 text-emerald-500 flex-shrink-0" />
-                      ) : (
-                        <div className="w-4 h-4 rounded-full border-2 border-slate-300 flex-shrink-0" />
-                      )}
-                      <span className={`text-xs ${profileCompletion.checks[key] ? "text-slate-400 line-through" : "text-slate-600 dark:text-slate-300"}`}>
-                        {label}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-                <a href="/profile"
-                  className="mt-3 block text-center text-xs font-bold text-[#0000FF] hover:underline"
-                  data-testid="complete-profile-link">
-                  Complete Profile →
-                </a>
-              </div>
-            )}
-
-            {/* Quick Stats */}
-            <div className="card p-4">
-              <h3 className="font-bold text-[#050A30] dark:text-white text-sm mb-3" style={{ fontFamily: "Manrope, sans-serif" }}>Your Stats</h3>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-blue-50 dark:bg-blue-950 rounded-lg p-3 text-center">
-                  <div className="text-2xl font-extrabold text-[#0000FF]">{user?.jobs_completed || 0}</div>
-                  <div className="text-xs text-slate-500">Jobs Done</div>
-                </div>
-                <div className="bg-amber-50 dark:bg-amber-950 rounded-lg p-3 text-center">
-                  <div className="text-2xl font-extrabold text-amber-500">{user?.rating_count > 0 ? user.rating.toFixed(1) : "—"}</div>
-                  <div className="text-xs text-slate-500">Rating</div>
-                </div>
-                <div className="bg-emerald-50 dark:bg-emerald-950 rounded-lg p-3 text-center">
-                  <div className="text-2xl font-extrabold text-emerald-500">{user?.points || 0}</div>
-                  <div className="text-xs text-slate-500">Points</div>
-                </div>
-                <div className="bg-purple-50 dark:bg-purple-950 rounded-lg p-3 text-center">
-                  <div className="text-2xl font-extrabold text-purple-500">{jobs.length}</div>
-                  <div className="text-xs text-slate-500">Nearby</div>
-                </div>
-                <div className="col-span-2 bg-emerald-50 dark:bg-emerald-950 rounded-lg p-3 text-center" data-testid="accepted-jobs-count">
-                  <div className="text-2xl font-extrabold text-emerald-600">{acceptedJobsCount}</div>
-                  <div className="text-xs text-slate-500">Accepted Jobs</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Profile Boost */}
-            {profileBoost?.is_boosted ? (
-              <div className="card p-4 bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-950 dark:to-blue-950 border border-purple-200 dark:border-purple-700" data-testid="boost-active-card">
-                <div className="flex items-center gap-2 mb-1">
-                  <Zap className="w-4 h-4 text-purple-500" />
-                  <p className="text-sm font-bold text-purple-700 dark:text-purple-300">Profile Boosted</p>
-                </div>
-                <p className="text-xs text-slate-500">
-                  Expires {new Date(profileBoost.expires_at).toLocaleDateString()}
-                </p>
-              </div>
-            ) : (
-              <div className="card p-4" data-testid="profile-boost-card">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <Zap className="w-4 h-4 text-purple-500" />
-                    <p className="text-sm font-bold text-[#050A30] dark:text-white">Boost Profile</p>
-                  </div>
-                  <span className="text-xs text-purple-600 font-bold">${profileBoost?.price ?? "4.99"}</span>
-                </div>
-                <p className="text-xs text-slate-400 mb-3">Get priority visibility for 7 days</p>
-                <button onClick={activateProfileBoost} disabled={boostLoading}
-                  className="w-full py-2 bg-purple-600 text-white rounded-lg text-xs font-bold hover:bg-purple-700 disabled:opacity-50 transition-colors"
-                  data-testid="boost-profile-btn">
-                  {boostLoading ? "Activating..." : "Boost Now (Demo)"}
-                </button>
-              </div>
-            )}
-
-            {/* Pending Applications */}
-            {pendingIds.length > 0 && (
-              <div className="card p-4" data-testid="pending-jobs-panel">
-                <h3 className="font-bold text-[#050A30] dark:text-white text-sm mb-3 flex items-center gap-2" style={{ fontFamily: "Manrope, sans-serif" }}>
-                  <Clock className="w-4 h-4 text-amber-500" />
-                  Pending Applications ({pendingIds.length})
-                </h3>
-                <div className="space-y-2">
-                  {myJobs.filter(j => j.my_status === "pending").map(job => (
-                    <div key={job.id} className="flex items-center justify-between p-2.5 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-700" data-testid={`pending-job-${job.id}`}>
-                      <div className="min-w-0">
-                        <p className="text-xs font-bold text-slate-800 dark:text-white truncate">{job.title}</p>
-                        <p className="text-[10px] text-slate-500">${job.pay_rate}/hr · Awaiting approval</p>
-                      </div>
-                      <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
-                        <button
-                          onClick={() => setSelectedJob(job)}
-                          className="text-[10px] text-blue-500 hover:text-blue-700 transition-colors"
-                          data-testid={`preview-pending-${job.id}`}>
-                          View
-                        </button>
-                        <button
-                          onClick={() => withdrawJob(job.id)}
-                          className="text-[10px] text-red-400 hover:text-red-600"
-                          data-testid={`withdraw-pending-${job.id}`}>
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* My Active Jobs */}
-            <div className="card p-4">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-bold text-[#050A30] dark:text-white text-sm" style={{ fontFamily: "Manrope, sans-serif" }}>My Active Jobs</h3>
-                <button
-                  onClick={messageAdmin}
-                  className="text-xs flex items-center gap-1 text-[#0000FF] dark:text-blue-400 hover:underline font-semibold"
-                  data-testid="crew-message-admin-btn">
-                  <MessageCircle className="w-3 h-3" /> Admin Support
-                </button>
-              </div>
-              {myJobs.filter(j => ["in_progress", "fulfilled", "open", "suspended"].includes(j.status)).length === 0 ? (
-                <p className="text-slate-400 text-sm">No active jobs. Accept a job to get started!</p>
-              ) : (
-                <div className="space-y-2">
-                  {myJobs.filter(j => ["in_progress", "fulfilled", "open", "suspended"].includes(j.status)).map(job => (
-                    <div key={job.id}>
-                      <JobCard job={job} onComplete={completeJob} currentUser={user} isAccepted={true} />
-                      <div className="flex items-center gap-2 mt-1 px-1">
-                        {job.status === "suspended" ? (
-                          <span className="text-xs text-amber-600 font-semibold flex items-center gap-1">
-                            <AlertTriangle className="w-3 h-3" /> Suspended by contractor
-                          </span>
-                        ) : (
-                          <button
-                            onClick={() => withdrawJob(job.id)}
-                            className="text-xs text-slate-400 hover:text-red-500 transition-colors flex items-center gap-1"
-                            data-testid={`withdraw-job-${job.id}`}>
-                            <LogOut className="w-3 h-3" /> Withdraw
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Crew Requests */}
-            {crewRequests.filter(r => r.status === "pending").length > 0 && (
-              <div className="card p-4" data-testid="crew-requests-panel">
-                <h3 className="font-bold text-[#050A30] dark:text-white text-sm mb-3 flex items-center gap-2" style={{ fontFamily: "Manrope, sans-serif" }}>
-                  <MessageCircle className="w-4 h-4 text-[#0000FF]" />
-                  Crew Requests ({crewRequests.filter(r => r.status === "pending").length})
-                </h3>
-                <div className="space-y-2">
-                  {crewRequests.filter(r => r.status === "pending").slice(0, 5).map(req => (
-                    <div key={req.id} className="bg-blue-50 dark:bg-blue-950 rounded-lg p-3" data-testid={`crew-request-${req.id}`}>
-                      <p className="text-sm font-bold text-[#050A30] dark:text-white">{req.contractor_name}</p>
-                      {req.contractor_company && <p className="text-xs text-slate-500">{req.contractor_company}</p>}
-                      {req.message && <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">{req.message}</p>}
-                      <div className="flex gap-2 mt-2">
-                        <button onClick={() => acceptCrewRequest(req.id)}
-                          className="flex-1 flex items-center justify-center gap-1 py-1.5 text-xs font-bold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700"
-                          data-testid={`accept-request-${req.id}`}>
-                          <UserCheck className="w-3 h-3" /> Accept
-                        </button>
-                        <button onClick={() => declineCrewRequest(req.id)}
-                          className="flex-1 flex items-center justify-center gap-1 py-1.5 text-xs font-bold rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-300"
-                          data-testid={`decline-request-${req.id}`}>
-                          <UserX className="w-3 h-3" /> Decline
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Referral Code */}
-            <div className="card p-4 bg-gradient-to-br from-slate-800 to-blue-900 dark:from-slate-900 dark:to-blue-950">
-              <h3 className="font-bold text-white text-sm mb-2" style={{ fontFamily: "Manrope, sans-serif" }}>Your Referral Code</h3>
-              <div className="bg-white/10 rounded-lg px-4 py-2 text-sky-300 font-mono font-bold text-lg text-center mb-2">
-                {user?.referral_code}
-              </div>
-              <p className="text-slate-300 text-xs text-center">Share & earn 100 points per referral</p>
-            </div>
+          <div className="lg:col-span-1">
+            <CrewSidebar
+              user={user}
+              profileCompletion={profileCompletion}
+              profileBoost={profileBoost}
+              boostLoading={boostLoading}
+              myJobs={myJobs}
+              crewRequests={crewRequests}
+              pendingIds={pendingIds}
+              acceptedIds={acceptedIds}
+              onBoost={activateProfileBoost}
+              onWithdraw={withdrawJob}
+              onMessageAdmin={messageAdmin}
+              onAcceptRequest={acceptCrewRequest}
+              onDeclineRequest={declineCrewRequest}
+              onSelectJob={setSelectedJob}
+            />
           </div>
         </div>
-
-        {/* Job Detail Modal */}
-        {selectedJob && (
-          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setSelectedJob(null)}>
-            <div className="card max-w-md w-full p-6 relative overflow-y-auto max-h-[90vh]" onClick={e => e.stopPropagation()}>
-              <button onClick={() => setSelectedJob(null)} className="absolute top-4 right-4 text-slate-400"><X className="w-5 h-5" /></button>
-              {selectedJob.is_emergency && (
-                <div className="bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 text-xs font-bold px-3 py-1 rounded-full inline-flex items-center gap-1 mb-3">
-                  <AlertTriangle className="w-3 h-3" /> EMERGENCY JOB
-                </div>
-              )}
-              <h2 className="font-extrabold text-[#050A30] dark:text-white text-xl mb-1" style={{ fontFamily: "Manrope, sans-serif" }}>{selectedJob.title}</h2>
-              <p className="text-slate-500 text-sm mb-4">{selectedJob.contractor_name}</p>
-              <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">{selectedJob.description}</p>
-              <div className="space-y-2 text-sm mb-4">
-                <div className="flex justify-between"><span className="text-slate-500">Pay Rate:</span><span className="font-bold text-[#0000FF]">${selectedJob.pay_rate}/hr</span></div>
-                <div className="flex justify-between"><span className="text-slate-500">Trade:</span><span className="font-semibold capitalize">{selectedJob.trade}</span></div>
-                <div className="flex justify-between"><span className="text-slate-500">Crew Needed:</span><span className="font-semibold">{selectedJob.crew_accepted?.length || 0}/{selectedJob.crew_needed}</span></div>
-                {selectedJob.start_time && <div className="flex justify-between"><span className="text-slate-500">Start:</span><span className="font-semibold">{new Date(selectedJob.start_time).toLocaleString("en-US",{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"})}</span></div>}
-                {(selectedJob.location?.city || selectedJob.address) && <div className="flex justify-between"><span className="text-slate-500">Location:</span><span className="font-semibold text-right">{selectedJob.location?.city || selectedJob.address?.split(",")[0]}</span></div>}
-              </div>
-              {/* Contractor contact info */}
-              {contractorInfo && (
-                <div className="border-t border-slate-200 dark:border-slate-700 pt-3 mb-4">
-                  <p className="text-xs font-semibold text-slate-500 uppercase mb-2">Contractor Contact</p>
-                  {/* Pending + no paid reveal → show locked state + reveal button */}
-                  {pendingIds.includes(selectedJob.id) && !contractorInfo.has_paid_reveal && (
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-sm text-slate-400 italic">
-                        <Phone className="w-3.5 h-3.5 flex-shrink-0" />
-                        <span className="text-xs">Hidden until approved</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-slate-400 italic">
-                        <Mail className="w-3.5 h-3.5 flex-shrink-0" />
-                        <span className="text-xs">Hidden until approved</span>
-                      </div>
-                      {selectedJob.crew_accepted?.length < selectedJob.crew_needed && (
-                        <button
-                          onClick={revealContactInfo}
-                          disabled={revealLoading}
-                          className="w-full mt-1 py-2 rounded-lg text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-white transition-colors disabled:opacity-60"
-                          data-testid="reveal-contact-btn">
-                          {revealLoading ? "Processing..." : `Reveal Contractor Info ($${REVEAL_CONTACT_PRICE} demo)`}
-                        </button>
-                      )}
-                    </div>
-                  )}
-                  {/* Approved OR paid reveal → show real contact */}
-                  {(acceptedIds.includes(selectedJob.id) || contractorInfo.has_paid_reveal) && (
-                    <>
-                      {contractorInfo.phone && (
-                        <div className="flex items-center gap-2 text-sm mb-1">
-                          <Phone className="w-3.5 h-3.5 text-[#0000FF] flex-shrink-0" />
-                          <span className="text-slate-700 dark:text-white">{contractorInfo.phone}</span>
-                          {contractorInfo.has_paid_reveal && !acceptedIds.includes(selectedJob.id) && (
-                            <span className="text-[10px] text-amber-600 bg-amber-50 dark:bg-amber-900/30 px-1.5 py-0.5 rounded-full">Paid Reveal</span>
-                          )}
-                        </div>
-                      )}
-                      {contractorInfo.email && (
-                        <div className="flex items-center gap-2 text-sm">
-                          <Mail className="w-3.5 h-3.5 text-[#0000FF] flex-shrink-0" />
-                          <span className="text-slate-700 dark:text-white">{contractorInfo.email}</span>
-                        </div>
-                      )}
-                    </>
-                  )}
-                  {/* Not applied (just viewing) — show upgrade-gate or partial info */}
-                  {!pendingIds.includes(selectedJob.id) && !acceptedIds.includes(selectedJob.id) && !contractorInfo.has_paid_reveal && (
-                    <>
-                      {contractorInfo.phone && (
-                        <div className="flex items-center gap-2 text-sm mb-1">
-                          <Phone className="w-3.5 h-3.5 text-[#0000FF] flex-shrink-0" />
-                          <span className={contractorInfo.phone.startsWith("*") ? "text-slate-400 italic text-xs" : "text-slate-700 dark:text-white"}>
-                            {contractorInfo.phone.startsWith("*") ? "Upgrade plan to view" : contractorInfo.phone}
-                          </span>
-                        </div>
-                      )}
-                      {contractorInfo.email && (
-                        <div className="flex items-center gap-2 text-sm">
-                          <Mail className="w-3.5 h-3.5 text-[#0000FF] flex-shrink-0" />
-                          <span className={contractorInfo.email.startsWith("*") ? "text-slate-400 italic text-xs" : "text-slate-700 dark:text-white"}>
-                            {contractorInfo.email.startsWith("*") ? "Upgrade plan to view" : contractorInfo.email}
-                          </span>
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-              )}
-              {selectedJob.status === "open" && !acceptedIds.includes(selectedJob.id) && !pendingIds.includes(selectedJob.id) && (
-                <button onClick={() => { acceptJob(selectedJob.id); setSelectedJob(null); }}
-                  disabled={isExpired}
-                  className={`w-full py-3 rounded-xl font-bold transition-colors ${isExpired ? "bg-slate-300 text-slate-500 cursor-not-allowed" : selectedJob.is_emergency ? "bg-red-600 text-white hover:bg-red-700" : "bg-[#0000FF] text-white hover:bg-blue-700"}`}
-                  data-testid="modal-accept-job">
-                  {isExpired ? "Subscription Expired" : selectedJob.is_emergency ? "Accept Emergency Job" : "Accept This Job"}
-                </button>
-              )}
-              {pendingIds.includes(selectedJob.id) && (
-                <div
-                  className="w-full py-2.5 rounded-xl font-semibold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 flex items-center justify-center gap-2 text-sm mt-2"
-                  data-testid="modal-pending-status">
-                  <Clock className="w-4 h-4" /> Application Pending — Awaiting Contractor Approval
-                </div>
-              )}
-              {acceptedIds.includes(selectedJob.id) && (
-                <div className="flex gap-2 mt-2">
-                  <button
-                    onClick={() => { messageContractor(selectedJob.id); setSelectedJob(null); }}
-                    className="flex-1 py-2.5 rounded-xl font-semibold bg-emerald-600 text-white hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2 text-sm"
-                    data-testid="modal-message-contractor">
-                    <Mail className="w-4 h-4" /> Message Contractor
-                  </button>
-                  <button
-                    onClick={() => shareJob(selectedJob)}
-                    className="px-4 py-2.5 rounded-xl font-semibold bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors flex items-center gap-1.5 text-sm"
-                    data-testid="modal-share-job">
-                    <Share2 className="w-4 h-4" /> Share
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
       </div>
 
+      {/* Job Detail Modal */}
+      {selectedJob && (
+        <JobDetailModal
+          job={selectedJob}
+          contractorInfo={contractorInfo}
+          acceptedIds={acceptedIds}
+          pendingIds={pendingIds}
+          isExpired={isExpired}
+          revealLoading={revealLoading}
+          revealPrice={REVEAL_CONTACT_PRICE}
+          onClose={() => setSelectedJob(null)}
+          onAccept={acceptJob}
+          onReveal={revealContactInfo}
+          onMessage={messageContractor}
+          onShare={shareJob}
+        />
+      )}
+
       {/* Profile Completion Popup */}
-      {showCompleteProfilePopup && profileCompletion && !profileCompletion.is_complete && (
-        <div className="fixed inset-0 bg-black/50 z-[12] flex items-center justify-center p-4" data-testid="profile-completion-popup">
-          <div className="card max-w-sm w-full p-6 relative" onClick={e => e.stopPropagation()}>
-            <button onClick={() => setShowCompleteProfilePopup(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><X className="w-5 h-5" /></button>
-            <div className="text-center mb-4">
-              <div className="w-14 h-14 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mx-auto mb-3">
-                <AlertTriangle className="w-7 h-7 text-amber-500" />
-              </div>
-              <h3 className="font-extrabold text-[#050A30] dark:text-white text-lg" style={{ fontFamily: "Manrope, sans-serif" }}>
-                Complete Your Profile
-              </h3>
-              <p className="text-slate-500 text-sm mt-1">
-                You can have a better experience, Please complete profile!
-              </p>
-            </div>
-            <div className="mb-4">
-              <div className="flex justify-between text-xs font-semibold mb-1">
-                <span className="text-slate-500">Progress</span>
-                <span className="text-[#0000FF]">{profileCompletion.percentage}%</span>
-              </div>
-              <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2.5">
-                <div className="bg-[#0000FF] h-2.5 rounded-full transition-all" style={{ width: `${profileCompletion.percentage}%` }} />
-              </div>
-            </div>
-            <a href="/profile"
-              className="block w-full text-center bg-[#0000FF] text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition-colors"
-              data-testid="popup-complete-profile-btn">
-              Complete Profile
-            </a>
-            <button onClick={() => setShowCompleteProfilePopup(false)}
-              className="block w-full text-center text-slate-400 text-sm mt-2 hover:text-slate-600"
-              data-testid="popup-dismiss-btn">
-              Maybe Later
-            </button>
-          </div>
-        </div>
+      {showCompleteProfilePopup && (
+        <ProfileCompletionPopup
+          profileCompletion={profileCompletion}
+          onClose={() => setShowCompleteProfilePopup(false)}
+        />
       )}
     </div>
   );

@@ -2,17 +2,24 @@ import React, { useState, useRef, useCallback } from "react";
 import axios from "axios";
 import TradeSelect from "./TradeSelect";
 import { MapPin, AlertTriangle, Eye, X } from "lucide-react";
+import { toast } from "sonner";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
+const normalizeTrade = (trade) =>
+  trade?.startsWith("__cat__:") ? trade.replace("__cat__:", "") : trade;
+
 /**
- * JobFormModal — extracted from ContractorDashboard
- * Manages its own address suggestion state; all other form state lives in parent.
+ * JobFormModal — full job creation form.
+ * Address suggestions are managed internally.
+ * Tasks and images are managed internally and passed to onSubmit.
  */
 export default function JobFormModal({ show, onClose, onSubmit, copyEditMode, jobForm, onChange, grouped, user, onPreview }) {
   const [addressSuggestions, setAddressSuggestions] = useState([]);
   const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
   const [fetchingAddressSuggestions, setFetchingAddressSuggestions] = useState(false);
+  const [taskInput, setTaskInput] = useState("");
+  const [jobImages, setJobImages] = useState([]);
   const addressDebounceRef = useRef(null);
   const addressSuggestionsRef = useRef(null);
 
@@ -39,12 +46,29 @@ export default function JobFormModal({ show, onClose, onSubmit, copyEditMode, jo
     setShowAddressSuggestions(false);
   };
 
+  const handleClose = () => {
+    setTaskInput("");
+    setJobImages([]);
+    setAddressSuggestions([]);
+    setShowAddressSuggestions(false);
+    onClose();
+  };
+
+  const addTask = () => {
+    if (taskInput.trim()) {
+      onChange("tasks", [...(jobForm.tasks || []), taskInput.trim()]);
+      setTaskInput("");
+    }
+  };
+
+  const removeTask = (idx) => onChange("tasks", (jobForm.tasks || []).filter((_, i) => i !== idx));
+
   if (!show) return null;
 
   return (
     <div className="fixed inset-0 bg-black/50 z-[10] flex items-center justify-center p-4 overflow-y-auto">
       <div className="card max-w-lg w-full p-6 relative my-4">
-        <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
+        <button onClick={handleClose} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
           <X className="w-5 h-5" />
         </button>
         <h2 className="font-extrabold text-[#050A30] dark:text-white text-xl mb-1" style={{ fontFamily: "Manrope, sans-serif" }}>
@@ -54,7 +78,7 @@ export default function JobFormModal({ show, onClose, onSubmit, copyEditMode, jo
           {copyEditMode ? "Edit the copied job details, then post." : "Workers will be notified in real-time"}
         </p>
 
-        <form onSubmit={onSubmit} className="space-y-4">
+        <form onSubmit={e => onSubmit(e, jobImages)} className="space-y-4">
           {/* Job type toggle */}
           <div className="flex gap-2 mb-2">
             <button type="button" onClick={() => onChange("is_emergency", false)}
@@ -96,10 +120,53 @@ export default function JobFormModal({ show, onClose, onSubmit, copyEditMode, jo
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-semibold text-[#050A30] dark:text-white mb-1">Description</label>
-            <textarea value={jobForm.description} onChange={e => onChange("description", e.target.value)} rows={3}
+            <label className="block text-sm font-semibold text-[#050A30] dark:text-white mb-1">Description <span className="text-red-500">*</span></label>
+            <textarea value={jobForm.description} onChange={e => onChange("description", e.target.value)} rows={3} required
               className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-[#0000FF] dark:bg-slate-800 dark:text-white"
               placeholder="Describe the work..." data-testid="job-desc-input" />
+          </div>
+
+          {/* PunchList Tasks */}
+          <div>
+            <label className="block text-sm font-semibold text-[#050A30] dark:text-white mb-1">PunchList Tasks</label>
+            <div className="flex gap-2 mb-2">
+              <input value={taskInput} onChange={e => setTaskInput(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addTask(); } }}
+                className="flex-1 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0000FF] dark:bg-slate-800 dark:text-white"
+                placeholder="Add a task…" data-testid="task-input" />
+              <button type="button" onClick={addTask}
+                className="px-3 py-2 bg-[#0000FF] text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-colors"
+                data-testid="add-task-btn">Add</button>
+            </div>
+            {(jobForm.tasks || []).length > 0 && (
+              <ul className="space-y-1" data-testid="task-list">
+                {(jobForm.tasks || []).map((t, i) => (
+                  <li key={`task-${i}-${t}`} className="flex items-center justify-between bg-slate-50 dark:bg-slate-800 rounded px-3 py-1.5 text-sm text-slate-700 dark:text-slate-300">
+                    <span>{t}</span>
+                    <button type="button" onClick={() => removeTask(i)}
+                      className="text-slate-400 hover:text-red-500 ml-2 transition-colors" data-testid={`remove-task-${i}`}>✕</button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          {/* Job Images */}
+          <div>
+            <label className="block text-sm font-semibold text-[#050A30] dark:text-white mb-1">
+              Job Images <span className="text-xs text-slate-400">(max 4, jpeg/png/webp)</span>
+            </label>
+            <input type="file" multiple accept="image/jpeg,image/png,image/webp"
+              onChange={e => {
+                const valid = Array.from(e.target.files).filter(f => ["image/jpeg", "image/png", "image/webp"].includes(f.type));
+                if (valid.length > 4) { toast.error("Max 4 images allowed"); return; }
+                setJobImages(valid);
+              }}
+              className="block w-full text-sm text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-blue-50 file:text-[#0000FF] hover:file:bg-blue-100 transition-colors"
+              data-testid="job-images-input" />
+            {jobImages.length > 0 && (
+              <p className="text-xs text-slate-400 mt-1">{jobImages.length} image{jobImages.length > 1 ? "s" : ""} selected</p>
+            )}
           </div>
 
           {/* Trade + Crew Needed */}
@@ -168,7 +235,14 @@ export default function JobFormModal({ show, onClose, onSubmit, copyEditMode, jo
           {/* Actions */}
           <div className="flex gap-2 pt-1">
             <button type="button"
-              onClick={() => onPreview({ ...jobForm, contractor_name: user?.company_name || user?.name, status: "open", crew_accepted: [], location: { city: jobForm.address?.split(",")[1]?.trim() || jobForm.address } })}
+              onClick={() => onPreview({
+                ...jobForm,
+                trade: normalizeTrade(jobForm.trade),
+                contractor_name: user?.company_name || user?.name,
+                status: "open",
+                crew_accepted: [],
+                location: { city: jobForm.address?.split(",")[1]?.trim() || jobForm.address },
+              })}
               className="flex-1 flex items-center justify-center gap-1.5 border-2 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 py-3 rounded-xl font-bold text-sm hover:border-slate-300 transition-colors"
               data-testid="preview-form-btn">
               <Eye className="w-4 h-4" /> Preview
