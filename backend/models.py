@@ -121,6 +121,10 @@ class RatingCreate(BaseModel):
     review: Optional[str] = None
 
 
+class SkipRatingRequest(BaseModel):
+    crew_id: str
+
+
 # ─── Payment Models ──────────────────────────────────────────────────────────
 
 class CheckoutRequest(BaseModel):

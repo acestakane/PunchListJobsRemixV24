@@ -5,7 +5,7 @@ from fastapi import APIRouter, HTTPException, Depends, Query, UploadFile, File
 from typing import List
 from database import db
 from auth import get_current_user, user_to_response
-from models import JobCreate, JobUpdate, RatingCreate, TaskCheckRequest, DisputeCreate
+from models import JobCreate, JobUpdate, RatingCreate, SkipRatingRequest, TaskCheckRequest, DisputeCreate
 from utils.geocoding import geocode_address, haversine_distance
 from utils.email_utils import send_job_completion_email
 from utils.matching import sort_jobs_for_crew
@@ -59,6 +59,7 @@ async def create_job(data: JobCreate, current_user: dict = Depends(get_current_u
         "completed_at": None,
         "rated_crew": [],
         "rated_by_crew": [],
+        "skipped_ratings": [],
     }
 
     await db.jobs.insert_one(job_doc)
@@ -748,6 +749,7 @@ async def duplicate_job(job_id: str, current_user: dict = Depends(get_current_us
         "completed_at": None,
         "rated_crew": [],
         "rated_by_crew": [],
+        "skipped_ratings": [],
         "is_hidden": False,
     }
     await db.jobs.insert_one(new_job)
@@ -1061,7 +1063,11 @@ async def rate_user(job_id: str, data: RatingCreate, current_user: dict = Depend
     if not (is_contractor or is_crew):
         raise HTTPException(status_code=403, detail="Not part of this job")
 
-    # Check no duplicate rating
+    # LOCK: already skipped this crew member (contractors only)
+    if is_contractor and data.rated_id in job.get("skipped_ratings", []):
+        raise HTTPException(status_code=400, detail="Already skipped rating for this crew member")
+
+    # LOCK: duplicate rating check
     existing = await db.ratings.find_one({
         "job_id": job_id,
         "rater_id": current_user["id"],
@@ -1084,7 +1090,13 @@ async def rate_user(job_id: str, data: RatingCreate, current_user: dict = Depend
     }
     await db.ratings.insert_one(rating_doc)
 
-    # Update average rating
+    # Track rated_crew on the job document
+    await db.jobs.update_one(
+        {"id": job_id},
+        {"$addToSet": {"rated_crew": data.rated_id}}
+    )
+
+    # Update target user's average rating
     all_ratings = await db.ratings.find({"rated_id": data.rated_id}, {"_id": 0}).to_list(1000)
     avg = sum(r["stars"] for r in all_ratings) / len(all_ratings)
     await db.users.update_one(
@@ -1092,7 +1104,53 @@ async def rate_user(job_id: str, data: RatingCreate, current_user: dict = Depend
         {"$set": {"rating": round(avg, 1), "rating_count": len(all_ratings)}}
     )
 
+    # AUTO-MOVE: if every approved crew member is now rated or skipped → "past"
+    updated_job = await db.jobs.find_one({"id": job_id}, {"_id": 0})
+    crew_accepted = updated_job.get("crew_accepted", [])
+    handled = set(updated_job.get("rated_crew", [])) | set(updated_job.get("skipped_ratings", []))
+    if crew_accepted and all(c in handled for c in crew_accepted):
+        await db.jobs.update_one({"id": job_id}, {"$set": {"status": "past"}})
+
     return {"message": "Rating submitted", "rating": {k: v for k, v in rating_doc.items() if k != "_id"}}
+
+
+@router.post("/{job_id}/rate/skip")
+async def skip_rating(job_id: str, data: SkipRatingRequest, current_user: dict = Depends(get_current_user)):
+    """Contractor skips rating a crew member (counts as handled for completion tracking)."""
+    job = await db.jobs.find_one({"id": job_id}, {"_id": 0})
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    if job["contractor_id"] != current_user["id"]:
+        raise HTTPException(status_code=403, detail="Only contractors can skip ratings")
+    if job["status"] not in ("completed", "completed_pending_review"):
+        raise HTTPException(status_code=400, detail="Can only skip rating after job completion")
+    if data.crew_id not in job.get("crew_accepted", []):
+        raise HTTPException(status_code=400, detail="Crew member not part of this job")
+
+    # LOCK: already rated → cannot skip
+    existing = await db.ratings.find_one({
+        "job_id": job_id, "rater_id": current_user["id"], "rated_id": data.crew_id
+    })
+    if existing:
+        raise HTTPException(status_code=400, detail="Already rated this crew member — cannot skip")
+
+    # LOCK: already skipped
+    if data.crew_id in job.get("skipped_ratings", []):
+        raise HTTPException(status_code=400, detail="Already skipped rating for this crew member")
+
+    await db.jobs.update_one(
+        {"id": job_id},
+        {"$addToSet": {"skipped_ratings": data.crew_id}}
+    )
+
+    # AUTO-MOVE: if every approved crew member is now rated or skipped → "past"
+    updated_job = await db.jobs.find_one({"id": job_id}, {"_id": 0})
+    crew_accepted = updated_job.get("crew_accepted", [])
+    handled = set(updated_job.get("rated_crew", [])) | set(updated_job.get("skipped_ratings", []))
+    if crew_accepted and all(c in handled for c in crew_accepted):
+        await db.jobs.update_one({"id": job_id}, {"$set": {"status": "past"}})
+
+    return {"message": "Rating skipped", "crew_id": data.crew_id}
 
 
 @router.get("/{job_id}/ratings")
