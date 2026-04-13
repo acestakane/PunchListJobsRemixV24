@@ -69,3 +69,11 @@ Imported from: https://github.com/acestakane/PunchListJobsRemixV20.git
 - Configure RECAPTCHA_SECRET_KEY for bot protection
 - Add GOOGLE_MAPS_API_KEY for better geocoding
 - Profile photo upload (works, stored locally)
+
+## Code Quality Improvements (2026-04-12)
+- Fixed missing React hook dependencies: `fetchMe` wrapped in `useCallback([logout])` in AuthContext; `useEffect` deps updated to `[token, fetchMe]`
+- Fixed `MessagesPage.jsx` initial load `useEffect` stale closure: uses `initialThreadRef` + proper deps `[fetchThreads, openThread]`
+- Fixed `WebSocketContext.jsx` empty catch block: added `console.error`
+- Fixed 10+ empty catch blocks across `ContractorDashboard.jsx`, `CrewDashboard.jsx`, `ProfilePage.jsx`, `TradesTab.jsx`, `CmsPage.jsx` — all now log via `console.error` or `console.warn`
+- Fixed array index as React key in `ContractorDashboard.jsx` task list and `AuthPage.jsx` address suggestions
+- Fixed `__cat__:` prefix display bug: `normalizeTrade()` helper strips prefix before job submission and in Preview; `JobCard.jsx`, `ProfilePage.jsx`, `SharedJobPage.jsx` all sanitize trade display
